@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  # 前端服务
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:3000/api
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+      - python-backend
+    networks:
+      - sales-tools-network
+
+  # Express 后端服务
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - FRONTEND_URL=http://localhost:5173
+      - JWT_SECRET=your-jwt-secret-key
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - sales-tools-network
+
+  # Python 后端服务
+  python-backend:
+    build:
+      context: ./back-python
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=development
+      - HOST=0.0.0.0
+      - PORT=8000
+      - SECRET_KEY=your-python-secret-key
+      - BACKEND_CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+    volumes:
+      - ./back-python:/app
+    networks:
+      - sales-tools-network
+
+  # Redis 服务 (可选)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - sales-tools-network
+
+  # PostgreSQL 数据库 (可选)
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=sales_tools
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - sales-tools-network
+
+volumes:
+  redis_data:
+  postgres_data:
+
+networks:
+  sales-tools-network:
+    driver: bridge
