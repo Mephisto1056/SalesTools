@@ -18,6 +18,16 @@ const routes: RouteRecordRaw[] = [
     component: () => import("../views/LoginView.vue"),
   },
   {
+    path: "/competitive-analysis",
+    name: "CompetitiveAnalysis",
+    component: () => import("../views/CompetitiveAnalysisView.vue"),
+  },
+  {
+    path: "/self-test",
+    name: "SelfTest",
+    component: () => import("../views/SelfTestView.vue"),
+  },
+  {
     path: "/:pathMatch(.*)*",
     name: "NotFound",
     component: () => import("../views/NotFoundView.vue"),

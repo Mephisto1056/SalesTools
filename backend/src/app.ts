@@ -11,6 +11,8 @@ import { rateLimiter } from '@/middlewares/rateLimiter'
 import authRoutes from '@/routes/auth'
 import userRoutes from '@/routes/user'
 import healthRoutes from '@/routes/health'
+import competitiveAnalysisRoutes from '@/routes/competitiveAnalysis'
+import selfTestRoutes from '@/routes/selfTest'
 
 // 加载环境变量
 dotenv.config()
@@ -42,6 +44,8 @@ app.use('/health', healthRoutes)
 // API 路由
 app.use('/api/auth', authRoutes)
 app.use('/api/user', userRoutes)
+app.use('/api/competitive-analysis', competitiveAnalysisRoutes)
+app.use('/api/self-test', selfTestRoutes)
 
 // 404 处理
 app.use(notFoundHandler)

@@ -4,7 +4,7 @@ import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 // 创建 axios 实例
 const api: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api",
-  timeout: 10000,
+  timeout: 200000, // 增加到200秒，适应KIMI k2模型的处理时间
   headers: {
     "Content-Type": "application/json",
   },
