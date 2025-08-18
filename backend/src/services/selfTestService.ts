@@ -1,4 +1,10 @@
 import axios from 'axios';
+import {
+  buildSelfTestPrompt,
+  buildPersonalizedSelfTestPrompt,
+  generateMockAnalysis,
+  generatePersonalizedMockAnalysis
+} from '../prompts/selfTestPrompt';
 
 // 自我测试评估数据接口
 export interface SelfTestAssessment {
@@ -27,14 +33,48 @@ export interface SelfTestAssessment {
     enable: number;
     develop: number;
   };
+  subDimensionScores: {
+    trustEnvironment: number;
+    trustCommunication: number;
+    connectInsight: number;
+    connectDialogue: number;
+    enableSupport: number;
+    enableEffectiveness: number;
+    developGrowth: number;
+    developInheritance: number;
+  };
+}
+
+// 强项和改进项接口
+export interface StrengthItem {
+  dimension: string;
+  subDimension: string;
+  score: number;
+  displayName: string;
+}
+
+export interface ImprovementItem {
+  dimension: string;
+  subDimension: string;
+  score: number;
+  displayName: string;
+}
+
+// 个人信息接口
+export interface PersonalInfo {
+  experience?: string;
+  teamSize?: string;
+  challenges?: string[];
+  focusArea?: string;
+  learningStyle?: string;
 }
 
 // AI分析结果接口
 export interface SelfTestAnalysisResult {
   analysis: string;
   recommendations: string[];
-  strengths: string[];
-  improvements: string[];
+  strengths: StrengthItem[];
+  improvements: ImprovementItem[];
 }
 
 // 获取AI API配置
@@ -43,52 +83,72 @@ const getAIAPIConfig = () => ({
   KIMI_API_KEY: process.env.KIMI_API_KEY || '',
 });
 
-// 构建自我测试分析提示词
-const buildSelfTestPrompt = (assessment: SelfTestAssessment): string => {
-  const { totalScore, dimensionScores } = assessment;
-  
-  // 计算最低分和次低分维度
-  const dimensions = [
-    { name: 'Trust（信任建设）', score: dimensionScores.trust },
-    { name: 'Connect（深度连接）', score: dimensionScores.connect },
-    { name: 'Enable（精准赋能）', score: dimensionScores.enable },
-    { name: 'Develop（持续发展）', score: dimensionScores.develop }
-  ];
-  dimensions.sort((a, b) => a.score - b.score);
-  const lowestDimension = dimensions[0];
-  const secondLowestDimension = dimensions[1];
-  
-  return `
-作为一名专业的销售管理顾问，请基于以下销售辅导能力评估结果，提供个人行动计划。
-
-## 评估数据
-总分：${totalScore} / 200 分
-
-各维度得分：
-- Trust（信任建设）：${dimensionScores.trust} / 50 分
-- Connect（深度连接）：${dimensionScores.connect} / 50 分
-- Enable（精准赋能）：${dimensionScores.enable} / 50 分
-- Develop（持续发展）：${dimensionScores.develop} / 50 分
-
-## 重点改进维度识别
-最低分维度：${lowestDimension.name}（${lowestDimension.score}分）- 重点改进方向
-次低分维度：${secondLowestDimension.name}（${secondLowestDimension.score}分）- 次要改进方向
-
-## 要求
-请只提供个人行动计划的三条具体建议，格式如下：
-
-基于评估结果，我计划重点提升：
-1. [针对${lowestDimension.name}的具体、可操作的改进建议]
-2. [针对${secondLowestDimension.name}的具体、可操作的改进建议]
-3. [整体能力提升的具体、可操作的综合建议]
-
-要求：
-- 每条建议要具体、可操作
-- 语言简洁明了
-- 体现教练型销售管理的理念
-- 只返回这三条建议，不要其他内容
-`;
+// 维度映射
+const dimensionMapping = {
+  trustEnvironment: { dimension: 'Trust（信任建设）', subDimension: '信任环境创建能力' },
+  trustCommunication: { dimension: 'Trust（信任建设）', subDimension: '安全沟通建立' },
+  connectInsight: { dimension: 'Connect（深度连接）', subDimension: '需求洞察能力' },
+  connectDialogue: { dimension: 'Connect（深度连接）', subDimension: '深度对话技巧' },
+  enableSupport: { dimension: 'Enable（精准赋能）', subDimension: '个性化支持能力' },
+  enableEffectiveness: { dimension: 'Enable（精准赋能）', subDimension: '能力建设效果' },
+  developGrowth: { dimension: 'Develop（持续发展）', subDimension: '自主成长培养' },
+  developInheritance: { dimension: 'Develop（持续发展）', subDimension: '能力传承建设' }
 };
+
+// 计算子维度得分
+const calculateSubDimensionScores = (scores: any) => {
+  return {
+    trustEnvironment: scores.trust.environment.reduce((sum: number, score: number) => sum + score, 0),
+    trustCommunication: scores.trust.communication.reduce((sum: number, score: number) => sum + score, 0),
+    connectInsight: scores.connect.insight.reduce((sum: number, score: number) => sum + score, 0),
+    connectDialogue: scores.connect.dialogue.reduce((sum: number, score: number) => sum + score, 0),
+    enableSupport: scores.enable.support.reduce((sum: number, score: number) => sum + score, 0),
+    enableEffectiveness: scores.enable.effectiveness.reduce((sum: number, score: number) => sum + score, 0),
+    developGrowth: scores.develop.growth.reduce((sum: number, score: number) => sum + score, 0),
+    developInheritance: scores.develop.inheritance.reduce((sum: number, score: number) => sum + score, 0)
+  };
+};
+
+// 识别强项（得分>=22分的子维度）
+const identifyStrengths = (subDimensionScores: Record<string, number>): StrengthItem[] => {
+  const strengths: StrengthItem[] = [];
+  
+  Object.entries(subDimensionScores).forEach(([key, score]) => {
+    if (typeof score === 'number' && score >= 22) {
+      const mapping = dimensionMapping[key as keyof typeof dimensionMapping];
+      strengths.push({
+        dimension: mapping.dimension,
+        subDimension: mapping.subDimension,
+        score: score,
+        displayName: `${mapping.dimension} - ${mapping.subDimension}`
+      });
+    }
+  });
+  
+  // 按得分降序排列
+  return strengths.sort((a, b) => b.score - a.score);
+};
+
+// 识别改进项（得分<18分的子维度）
+const identifyImprovements = (subDimensionScores: Record<string, number>): ImprovementItem[] => {
+  const improvements: ImprovementItem[] = [];
+  
+  Object.entries(subDimensionScores).forEach(([key, score]) => {
+    if (typeof score === 'number' && score < 18) {
+      const mapping = dimensionMapping[key as keyof typeof dimensionMapping];
+      improvements.push({
+        dimension: mapping.dimension,
+        subDimension: mapping.subDimension,
+        score: score,
+        displayName: `${mapping.dimension} - ${mapping.subDimension}`
+      });
+    }
+  });
+  
+  // 按得分升序排列
+  return improvements.sort((a, b) => a.score - b.score);
+};
+
 
 // 调用KIMI API进行分析
 const callKimiAPI = async (prompt: string): Promise<string> => {
@@ -146,38 +206,35 @@ const callKimiAPI = async (prompt: string): Promise<string> => {
   }
 };
 
-// 生成模拟分析结果
-const generateMockAnalysis = (assessment: SelfTestAssessment): string => {
-  const { dimensionScores } = assessment;
-  
-  // 找出最低分和次低分维度
-  const dimensions = [
-    { name: 'Trust（信任建设）', score: dimensionScores.trust },
-    { name: 'Connect（深度连接）', score: dimensionScores.connect },
-    { name: 'Enable（精准赋能）', score: dimensionScores.enable },
-    { name: 'Develop（持续发展）', score: dimensionScores.develop }
-  ];
-  
-  dimensions.sort((a, b) => a.score - b.score);
-  const lowestDimension = dimensions[0];
-  const secondLowestDimension = dimensions[1];
-
-  return `基于评估结果，我计划重点提升：
-1. 针对${lowestDimension.name}：每周安排2次团队一对一沟通，建立开放透明的反馈机制，主动承认错误并鼓励团队分享困难
-2. 针对${secondLowestDimension.name}：深入了解每个团队成员的职业目标和个人挑战，制定个性化的发展计划和指导方式
-3. 整体能力提升：参加教练型领导力培训课程，建立定期的自我反思机制，持续学习和实践销售管理最佳实践`;
-};
 
 // 自我测试服务类
 class SelfTestService {
-  async analyzeAssessment(assessment: SelfTestAssessment): Promise<SelfTestAnalysisResult> {
-    const prompt = buildSelfTestPrompt(assessment);
+  async analyzeAssessment(assessment: SelfTestAssessment, personalInfo?: PersonalInfo): Promise<SelfTestAnalysisResult> {
+    // 计算子维度得分
+    const subDimensionScores = calculateSubDimensionScores(assessment.scores);
+    
+    // 更新assessment对象
+    assessment.subDimensionScores = subDimensionScores;
+    
+    // 识别强项和改进项
+    const strengths = identifyStrengths(subDimensionScores);
+    const improvements = identifyImprovements(subDimensionScores);
+    
+    // 根据是否有个人信息选择不同的prompt
+    const prompt = personalInfo
+      ? buildPersonalizedSelfTestPrompt(assessment, strengths, improvements, personalInfo)
+      : buildSelfTestPrompt(assessment, strengths, improvements);
+    
     const config = getAIAPIConfig();
     
     console.log('开始自我测试分析...');
     console.log('评估数据:', {
       totalScore: assessment.totalScore,
-      dimensionScores: assessment.dimensionScores
+      dimensionScores: assessment.dimensionScores,
+      subDimensionScores: assessment.subDimensionScores,
+      strengths: strengths.length,
+      improvements: improvements.length,
+      hasPersonalInfo: !!personalInfo
     });
 
     let analysis: string;
@@ -190,31 +247,23 @@ class SelfTestService {
         console.log('KIMI API分析完成');
       } catch (error) {
         console.error('KIMI API调用失败，使用模拟数据:', error);
-        analysis = generateMockAnalysis(assessment);
+        analysis = personalInfo
+          ? generatePersonalizedMockAnalysis(strengths, improvements, personalInfo)
+          : generateMockAnalysis(strengths, improvements);
       }
     } else {
       console.log('KIMI API未配置，使用模拟数据');
-      analysis = generateMockAnalysis(assessment);
+      analysis = personalInfo
+        ? generatePersonalizedMockAnalysis(strengths, improvements, personalInfo)
+        : generateMockAnalysis(strengths, improvements);
     }
 
-    // 从分析结果中提取建议和优势（简化版本）
+    // 从分析结果中提取建议（保持兼容性）
     const recommendations = [
-      '定期进行一对一深度交流',
-      '建立团队反馈机制',
-      '参加教练型领导力培训',
-      '制定个人发展计划'
-    ];
-
-    const strengths = [
-      '具备基础的管理理念',
-      '关注团队成员发展',
-      '愿意自我反思和改进'
-    ];
-
-    const improvements = [
-      '加强深度沟通技巧',
-      '提升个性化指导能力',
-      '建立系统化的培养机制'
+      '发挥强项优势，带动团队成长',
+      '针对薄弱环节制定专项提升计划',
+      '建立教练型管理系统思维',
+      '持续学习和实践最佳管理方法'
     ];
 
     return {

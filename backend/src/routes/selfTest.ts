@@ -1,5 +1,5 @@
 import express from 'express';
-import { selfTestService, SelfTestAssessment } from '../services/selfTestService';
+import { selfTestService, SelfTestAssessment, PersonalInfo } from '../services/selfTestService';
 
 const router = express.Router();
 
@@ -89,6 +89,7 @@ router.post('/analyze', async (req, res) => {
         assessmentData: {
           totalScore: assessment.totalScore,
           dimensionScores: assessment.dimensionScores,
+          subDimensionScores: assessment.subDimensionScores,
           timestamp: new Date().toISOString()
         }
       }
@@ -100,6 +101,111 @@ router.post('/analyze', async (req, res) => {
     return res.status(500).json({
       code: 500,
       message: error.message || '分析服务暂时不可用，请稍后重试',
+      data: null
+    });
+  }
+});
+
+// 提交个性化自我测试评估并获取AI分析
+router.post('/analyze-personalized', async (req, res) => {
+  try {
+    console.log('收到个性化自我测试分析请求');
+    
+    // 验证请求数据
+    const { assessment, personalInfo }: { assessment: SelfTestAssessment, personalInfo: PersonalInfo } = req.body;
+    
+    if (!assessment || !assessment.scores || !assessment.totalScore) {
+      return res.status(400).json({
+        code: 400,
+        message: '评估数据格式错误',
+        data: null
+      });
+    }
+
+    // 验证分数范围
+    if (assessment.totalScore < 0 || assessment.totalScore > 200) {
+      return res.status(400).json({
+        code: 400,
+        message: '总分数据异常',
+        data: null
+      });
+    }
+
+    // 验证各维度分数
+    const { dimensionScores } = assessment;
+    if (!dimensionScores ||
+        dimensionScores.trust < 0 || dimensionScores.trust > 50 ||
+        dimensionScores.connect < 0 || dimensionScores.connect > 50 ||
+        dimensionScores.enable < 0 || dimensionScores.enable > 50 ||
+        dimensionScores.develop < 0 || dimensionScores.develop > 50) {
+      return res.status(400).json({
+        code: 400,
+        message: '维度分数数据异常',
+        data: null
+      });
+    }
+
+    console.log('开始个性化AI分析，评估数据:', {
+      totalScore: assessment.totalScore,
+      dimensionScores: assessment.dimensionScores,
+      personalInfo: personalInfo
+    });
+
+    // 调用AI分析服务（包含个人信息）
+    const analysisResult = await selfTestService.analyzeAssessment(assessment, personalInfo);
+
+    console.log('个性化AI分析完成');
+
+    // 保存匿名评估结果到管理员统计
+    try {
+      const linkId = req.body.linkId || null;
+      
+      await fetch(`http://localhost:3000/api/admin/assessment-results`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          linkId,
+          scores: assessment.scores,
+          totalScore: assessment.totalScore,
+          dimensionScores: assessment.dimensionScores,
+          analysis: analysisResult.analysis,
+          personalInfo: personalInfo // 可选：保存个人信息用于统计分析
+        })
+      });
+      
+      console.log('个性化评估结果已保存到统计系统');
+    } catch (error) {
+      console.error('保存个性化评估结果失败:', error);
+      // 不影响用户体验，继续返回结果
+    }
+
+    // 返回个性化分析结果
+    return res.json({
+      code: 200,
+      message: '个性化分析完成',
+      data: {
+        analysis: analysisResult.analysis,
+        recommendations: analysisResult.recommendations,
+        strengths: analysisResult.strengths,
+        improvements: analysisResult.improvements,
+        assessmentData: {
+          totalScore: assessment.totalScore,
+          dimensionScores: assessment.dimensionScores,
+          subDimensionScores: assessment.subDimensionScores,
+          personalInfo: personalInfo,
+          timestamp: new Date().toISOString()
+        }
+      }
+    });
+
+  } catch (error: any) {
+    console.error('个性化自我测试分析错误:', error);
+    
+    return res.status(500).json({
+      code: 500,
+      message: error.message || '个性化分析服务暂时不可用，请稍后重试',
       data: null
     });
   }

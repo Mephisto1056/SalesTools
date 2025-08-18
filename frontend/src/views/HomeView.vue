@@ -14,7 +14,7 @@
           </h1>
           
           <p class="hero-description animate-fade-in-up">
-            专为销售经理打造的辅导能力提升工具，帮助您掌握科学的辅导方法，提升团队管理效能，培养高绩效销售团队。
+            专为销售经理打造的辅导能力提升工具，帮助您掌握科学的辅导方法，提升团队管理效能，培养高绩效销售团队。并获得个性化的销售辅导能力发展建议。
           </p>
           
           <div class="hero-actions animate-fade-in-up">

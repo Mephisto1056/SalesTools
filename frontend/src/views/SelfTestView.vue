@@ -31,7 +31,7 @@
             </div>
             <div class="info-item">
               <span class="info-label">评估时间</span>
-              <span class="info-value">约15-20分钟</span>
+              <span class="info-value">约8-10分钟</span>
             </div>
           </div>
         </div>
@@ -381,10 +381,10 @@
           </div>
         </div>
 
-        <!-- 改进建议 -->
-        <div class="result-card animate-fade-in-up">
+        <!-- 可发挥的强项 -->
+        <div v-if="strengths.length > 0" class="result-card animate-fade-in-up">
           <div class="card-header">
-            <div class="card-icon">
+            <div class="card-icon strength-icon">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M9 12l2 2 4-4"/>
                 <path d="M21 12c-1 0-3-1-3-3s2-3 3-3 3 1 3 3-2 3-3 3"/>
@@ -393,52 +393,265 @@
               </svg>
             </div>
             <div class="card-title">
-              <h3>重点改进方向</h3>
-              <p>基于评估结果的个性化改进建议</p>
+              <h3>可发挥的强项</h3>
+              <p>您在这些方面表现优秀，可以进一步发挥和运用</p>
             </div>
           </div>
           
-          <div class="improvement-content">
-            <div class="improvement-item priority-high">
-              <div class="improvement-header">
-                <span class="priority-badge high">重点改进</span>
-                <h4>{{ lowestDimension.name }}</h4>
+          <div class="strength-content">
+            <div v-for="strength in strengths" :key="strength.displayName" class="strength-item">
+              <div class="strength-header">
+                <span class="strength-badge">优势能力</span>
+                <h4>{{ strength.displayName }}</h4>
+                <span class="strength-score">{{ strength.score }} / 25分</span>
               </div>
-              <p class="improvement-description">
-                这是您当前得分最低的维度，建议优先关注和改进。
-              </p>
-            </div>
-            
-            <div class="improvement-item priority-medium">
-              <div class="improvement-header">
-                <span class="priority-badge medium">次要改进</span>
-                <h4>{{ secondLowestDimension.name }}</h4>
-              </div>
-              <p class="improvement-description">
-                这是您的次要改进方向，可以在主要问题解决后重点关注。
+              <p class="strength-description">
+                这是您的优势领域，建议将此能力作为团队建设和个人发展的核心优势。
               </p>
             </div>
           </div>
         </div>
 
-        <!-- AI分析报告 -->
+        <!-- 重点改进方向 -->
+        <div v-if="improvements.length > 0" class="result-card animate-fade-in-up">
+          <div class="card-header">
+            <div class="card-icon improvement-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
+            </div>
+            <div class="card-title">
+              <h3>重点改进方向</h3>
+              <p>得分低于18分的子维度，需要重点关注和提升</p>
+            </div>
+          </div>
+          
+          <div class="improvement-content">
+            <div v-for="improvement in improvements" :key="improvement.displayName" class="improvement-item priority-high">
+              <div class="improvement-header">
+                <span class="priority-badge high">重点改进</span>
+                <h4>{{ improvement.displayName }}</h4>
+                <span class="improvement-score">{{ improvement.score }} / 25分</span>
+              </div>
+              <p class="improvement-description">
+                这个子维度得分较低，建议制定专项提升计划，通过系统学习和实践来改进。
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 个性化的销售辅导能力建议 -->
         <div v-if="aiAnalysis" class="result-card animate-fade-in-up">
           <div class="card-header">
             <div class="card-icon">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M9 12l2 2 4-4"/>
-                <path d="M21 12c-1 0-3-1-3-3s2-3 3-3 3 1 3 3-2 3-3 3"/>
-                <path d="M3 12c1 0 3-1-3-3s-2-3-3-3-3 1-3 3 2 3 3 3"/>
-                <path d="M3 12h6m6 0h6"/>
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
               </svg>
             </div>
             <div class="card-title">
-              <h3>个人行动计划</h3>
-              <p>AI生成的个性化改进建议和行动方案</p>
+              <h3>个性化的销售辅导能力建议</h3>
+              <p>基于您的评估结果，AI生成的个性化能力提升建议</p>
             </div>
           </div>
           
           <div class="analysis-content" v-html="formatAnalysis(aiAnalysis)"></div>
+        </div>
+
+        <!-- 个性化建议升级 -->
+        <div v-if="!showPersonalForm && !isPersonalizing" class="personalization-upgrade animate-fade-in-up">
+          <div class="upgrade-card">
+            <div class="upgrade-header">
+              <div class="upgrade-icon">
+                🎯
+              </div>
+              <div class="upgrade-content">
+                <h3>想要更精准的个性化建议吗？</h3>
+                <p>告诉我们更多信息，获得量身定制的发展建议和行动方案</p>
+              </div>
+            </div>
+            <div class="upgrade-actions">
+              <button class="btn btn-primary" @click="showPersonalForm = true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+                获取个性化建议
+              </button>
+              <button class="btn btn-secondary">
+                暂时跳过
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 个性化信息表单 -->
+        <div v-if="showPersonalForm" class="personalization-form animate-fade-in-up">
+          <div class="form-card">
+            <div class="form-header">
+              <h3>📋 个性化信息补充</h3>
+              <p>请提供以下信息，帮助我们生成更精准的建议</p>
+            </div>
+            
+            <div class="form-content">
+              <!-- 管理经验 -->
+              <div class="form-group">
+                <label class="form-label">您的管理经验：</label>
+                <div class="radio-group">
+                  <label class="radio-option">
+                    <input type="radio" v-model="personalInfo.experience" value="1年以下" />
+                    <span>1年以下</span>
+                  </label>
+                  <label class="radio-option">
+                    <input type="radio" v-model="personalInfo.experience" value="1-3年" />
+                    <span>1-3年</span>
+                  </label>
+                  <label class="radio-option">
+                    <input type="radio" v-model="personalInfo.experience" value="3-5年" />
+                    <span>3-5年</span>
+                  </label>
+                  <label class="radio-option">
+                    <input type="radio" v-model="personalInfo.experience" value="5年以上" />
+                    <span>5年以上</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 团队规模 -->
+              <div class="form-group">
+                <label class="form-label">团队规模：</label>
+                <div class="radio-group">
+                  <label class="radio-option">
+                    <input type="radio" v-model="personalInfo.teamSize" value="5人以下" />
+                    <span>5人以下</span>
+                  </label>
+                  <label class="radio-option">
+                    <input type="radio" v-model="personalInfo.teamSize" value="5-10人" />
+                    <span>5-10人</span>
+                  </label>
+                  <label class="radio-option">
+                    <input type="radio" v-model="personalInfo.teamSize" value="10-20人" />
+                    <span>10-20人</span>
+                  </label>
+                  <label class="radio-option">
+                    <input type="radio" v-model="personalInfo.teamSize" value="20人以上" />
+                    <span>20人以上</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 当前挑战 -->
+              <div class="form-group">
+                <label class="form-label">当前最大挑战：（可多选）</label>
+                <div class="checkbox-group">
+                  <label class="checkbox-option">
+                    <input type="checkbox" @change="toggleChallenge('团队激励')" />
+                    <span>团队激励</span>
+                  </label>
+                  <label class="checkbox-option">
+                    <input type="checkbox" @change="toggleChallenge('业绩提升')" />
+                    <span>业绩提升</span>
+                  </label>
+                  <label class="checkbox-option">
+                    <input type="checkbox" @change="toggleChallenge('人员流失')" />
+                    <span>人员流失</span>
+                  </label>
+                  <label class="checkbox-option">
+                    <input type="checkbox" @change="toggleChallenge('沟通协调')" />
+                    <span>沟通协调</span>
+                  </label>
+                  <label class="checkbox-option">
+                    <input type="checkbox" @change="toggleChallenge('技能培养')" />
+                    <span>技能培养</span>
+                  </label>
+                  <label class="checkbox-option">
+                    <input type="checkbox" @change="toggleChallenge('其他')" />
+                    <span>其他</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 重点提升 -->
+              <div class="form-group">
+                <label class="form-label">希望重点提升：</label>
+                <div class="radio-group">
+                  <label class="radio-option">
+                    <input type="radio" v-model="personalInfo.focusArea" value="信任建设" />
+                    <span>信任建设</span>
+                  </label>
+                  <label class="radio-option">
+                    <input type="radio" v-model="personalInfo.focusArea" value="深度连接" />
+                    <span>深度连接</span>
+                  </label>
+                  <label class="radio-option">
+                    <input type="radio" v-model="personalInfo.focusArea" value="精准赋能" />
+                    <span>精准赋能</span>
+                  </label>
+                  <label class="radio-option">
+                    <input type="radio" v-model="personalInfo.focusArea" value="持续发展" />
+                    <span>持续发展</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 学习偏好 -->
+              <div class="form-group">
+                <label class="form-label">学习偏好：</label>
+                <div class="radio-group">
+                  <label class="radio-option">
+                    <input type="radio" v-model="personalInfo.learningStyle" value="理论学习" />
+                    <span>理论学习</span>
+                  </label>
+                  <label class="radio-option">
+                    <input type="radio" v-model="personalInfo.learningStyle" value="实践操作" />
+                    <span>实践操作</span>
+                  </label>
+                  <label class="radio-option">
+                    <input type="radio" v-model="personalInfo.learningStyle" value="案例分析" />
+                    <span>案例分析</span>
+                  </label>
+                  <label class="radio-option">
+                    <input type="radio" v-model="personalInfo.learningStyle" value="同伴交流" />
+                    <span>同伴交流</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button
+                class="btn btn-primary"
+                @click="submitPersonalizedAnalysis"
+                :disabled="isPersonalizing"
+              >
+                <svg v-if="isPersonalizing" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="animate-spin">
+                  <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                </svg>
+                <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+                {{ isPersonalizing ? '正在生成个性化建议...' : '生成个性化建议' }}
+              </button>
+              <button class="btn btn-secondary" @click="showPersonalForm = false">
+                返回基础结果
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 个性化建议结果 -->
+        <div v-if="personalizedAnalysis" class="result-card animate-fade-in-up">
+          <div class="card-header">
+            <div class="card-icon personalized-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
+            </div>
+            <div class="card-title">
+              <h3>🎯 专属个性化建议</h3>
+              <p>基于您的个人信息和评估结果，为您量身定制的发展建议</p>
+            </div>
+          </div>
+          
+          <div class="analysis-content personalized-content" v-html="formatAnalysis(personalizedAnalysis)"></div>
         </div>
 
         <!-- 操作按钮 -->
@@ -555,6 +768,17 @@ const scores = ref({
 const isLoading = ref(false);
 const showResult = ref(false);
 const aiAnalysis = ref('');
+const personalizedAnalysis = ref('');
+const analysisResult = ref<any>(null);
+const showPersonalForm = ref(false);
+const isPersonalizing = ref(false);
+const personalInfo = ref({
+  experience: '',
+  teamSize: '',
+  challenges: [] as string[],
+  focusArea: '',
+  learningStyle: ''
+});
 
 // 计算属性
 const isFormComplete = computed(() => {
@@ -606,6 +830,78 @@ const developScore = computed(() => {
     .reduce((sum, score) => sum + (score || 0), 0);
 });
 
+// 子维度得分计算
+const subDimensionScores = computed(() => {
+  return {
+    trustEnvironment: scores.value.trust.environment.reduce((sum, score) => sum + (score || 0), 0),
+    trustCommunication: scores.value.trust.communication.reduce((sum, score) => sum + (score || 0), 0),
+    connectInsight: scores.value.connect.insight.reduce((sum, score) => sum + (score || 0), 0),
+    connectDialogue: scores.value.connect.dialogue.reduce((sum, score) => sum + (score || 0), 0),
+    enableSupport: scores.value.enable.support.reduce((sum, score) => sum + (score || 0), 0),
+    enableEffectiveness: scores.value.enable.effectiveness.reduce((sum, score) => sum + (score || 0), 0),
+    developGrowth: scores.value.develop.growth.reduce((sum, score) => sum + (score || 0), 0),
+    developInheritance: scores.value.develop.inheritance.reduce((sum, score) => sum + (score || 0), 0)
+  };
+});
+
+// 强项识别（得分>=22分的子维度）
+const strengths = computed(() => {
+  const dimensionMapping = {
+    trustEnvironment: { dimension: 'Trust（信任建设）', subDimension: '信任环境创建能力' },
+    trustCommunication: { dimension: 'Trust（信任建设）', subDimension: '安全沟通建立' },
+    connectInsight: { dimension: 'Connect（深度连接）', subDimension: '需求洞察能力' },
+    connectDialogue: { dimension: 'Connect（深度连接）', subDimension: '深度对话技巧' },
+    enableSupport: { dimension: 'Enable（精准赋能）', subDimension: '个性化支持能力' },
+    enableEffectiveness: { dimension: 'Enable（精准赋能）', subDimension: '能力建设效果' },
+    developGrowth: { dimension: 'Develop（持续发展）', subDimension: '自主成长培养' },
+    developInheritance: { dimension: 'Develop（持续发展）', subDimension: '能力传承建设' }
+  };
+  
+  const strengthItems: any[] = [];
+  Object.entries(subDimensionScores.value).forEach(([key, score]) => {
+    if (score >= 22) {
+      const mapping = dimensionMapping[key as keyof typeof dimensionMapping];
+      strengthItems.push({
+        dimension: mapping.dimension,
+        subDimension: mapping.subDimension,
+        score: score,
+        displayName: `${mapping.dimension} - ${mapping.subDimension}`
+      });
+    }
+  });
+  
+  return strengthItems.sort((a, b) => b.score - a.score);
+});
+
+// 改进项识别（得分<18分的子维度）
+const improvements = computed(() => {
+  const dimensionMapping = {
+    trustEnvironment: { dimension: 'Trust（信任建设）', subDimension: '信任环境创建能力' },
+    trustCommunication: { dimension: 'Trust（信任建设）', subDimension: '安全沟通建立' },
+    connectInsight: { dimension: 'Connect（深度连接）', subDimension: '需求洞察能力' },
+    connectDialogue: { dimension: 'Connect（深度连接）', subDimension: '深度对话技巧' },
+    enableSupport: { dimension: 'Enable（精准赋能）', subDimension: '个性化支持能力' },
+    enableEffectiveness: { dimension: 'Enable（精准赋能）', subDimension: '能力建设效果' },
+    developGrowth: { dimension: 'Develop（持续发展）', subDimension: '自主成长培养' },
+    developInheritance: { dimension: 'Develop（持续发展）', subDimension: '能力传承建设' }
+  };
+  
+  const improvementItems: any[] = [];
+  Object.entries(subDimensionScores.value).forEach(([key, score]) => {
+    if (score < 18) {
+      const mapping = dimensionMapping[key as keyof typeof dimensionMapping];
+      improvementItems.push({
+        dimension: mapping.dimension,
+        subDimension: mapping.subDimension,
+        score: score,
+        displayName: `${mapping.dimension} - ${mapping.subDimension}`
+      });
+    }
+  });
+  
+  return improvementItems.sort((a, b) => a.score - b.score);
+});
+
 const totalScore = computed(() => {
   return trustScore.value + connectScore.value + enableScore.value + developScore.value;
 });
@@ -626,27 +922,6 @@ const levelClass = computed(() => {
   return 'needs-improvement';
 });
 
-const lowestDimension = computed(() => {
-  const dimensions = [
-    { name: 'Trust（信任建设）', score: trustScore.value },
-    { name: 'Connect（深度连接）', score: connectScore.value },
-    { name: 'Enable（精准赋能）', score: enableScore.value },
-    { name: 'Develop（持续发展）', score: developScore.value }
-  ];
-  dimensions.sort((a, b) => a.score - b.score);
-  return dimensions[0];
-});
-
-const secondLowestDimension = computed(() => {
-  const dimensions = [
-    { name: 'Trust（信任建设）', score: trustScore.value },
-    { name: 'Connect（深度连接）', score: connectScore.value },
-    { name: 'Enable（精准赋能）', score: enableScore.value },
-    { name: 'Develop（持续发展）', score: developScore.value }
-  ];
-  dimensions.sort((a, b) => a.score - b.score);
-  return dimensions[1];
-});
 
 // 方法
 const submitAssessment = async () => {
@@ -666,7 +941,8 @@ const submitAssessment = async () => {
       }
     };
     
-    const response = await request.post<{data: {analysis: string}}>('/self-test/analyze', assessmentData);
+    const response = await request.post<{data: any}>('/self-test/analyze', assessmentData);
+    analysisResult.value = response.data;
     aiAnalysis.value = response.data.analysis;
     showResult.value = true;
   } catch (error) {
@@ -698,10 +974,56 @@ const resetAssessment = () => {
   };
   showResult.value = false;
   aiAnalysis.value = '';
+  personalizedAnalysis.value = '';
+  analysisResult.value = null;
 };
 
 const formatAnalysis = (analysis: string) => {
   return analysis.replace(/\n/g, '<br>');
+};
+
+// 提交个性化分析
+const submitPersonalizedAnalysis = async () => {
+  if (isPersonalizing.value) return;
+  
+  isPersonalizing.value = true;
+  
+  try {
+    const assessmentData = {
+      scores: scores.value,
+      totalScore: totalScore.value,
+      dimensionScores: {
+        trust: trustScore.value,
+        connect: connectScore.value,
+        enable: enableScore.value,
+        develop: developScore.value
+      }
+    };
+    
+    const response = await request.post<{data: any}>('/self-test/analyze-personalized', {
+      assessment: assessmentData,
+      personalInfo: personalInfo.value
+    });
+    
+    analysisResult.value = response.data;
+    personalizedAnalysis.value = response.data.analysis;
+    showPersonalForm.value = false;
+  } catch (error) {
+    console.error('个性化分析失败:', error);
+    alert('个性化分析失败，请重试');
+  } finally {
+    isPersonalizing.value = false;
+  }
+};
+
+// 处理挑战选择
+const toggleChallenge = (challenge: string) => {
+  const index = personalInfo.value.challenges.indexOf(challenge);
+  if (index > -1) {
+    personalInfo.value.challenges.splice(index, 1);
+  } else {
+    personalInfo.value.challenges.push(challenge);
+  }
 };
 </script>
 
@@ -1170,6 +1492,64 @@ const formatAnalysis = (analysis: string) => {
   background: linear-gradient(90deg, #8b5cf6 0%, #7c3aed 100%);
 }
 
+/* ===== 强项展示 ===== */
+.strength-content {
+  padding: var(--space-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.strength-item {
+  padding: var(--space-6);
+  border-radius: var(--radius-xl);
+  border: 1px solid #d1fae5;
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+}
+
+.strength-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.strength-badge {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-2xl);
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #059669;
+  color: white;
+}
+
+.strength-header h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.strength-score {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #059669;
+  background: white;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+}
+
+.strength-description {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.strength-icon {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+}
+
 /* ===== 改进建议 ===== */
 .improvement-content {
   padding: var(--space-8);
@@ -1199,6 +1579,7 @@ const formatAnalysis = (analysis: string) => {
   align-items: center;
   gap: var(--space-3);
   margin-bottom: var(--space-3);
+  flex-wrap: wrap;
 }
 
 .priority-badge {
@@ -1222,6 +1603,20 @@ const formatAnalysis = (analysis: string) => {
   font-size: 1rem;
   font-weight: 600;
   color: var(--text-primary);
+  flex: 1;
+}
+
+.improvement-score {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #dc2626;
+  background: white;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+}
+
+.improvement-icon {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
 }
 
 .improvement-description {
@@ -1238,6 +1633,171 @@ const formatAnalysis = (analysis: string) => {
   color: var(--text-secondary);
 }
 
+/* ===== 个性化建议样式 ===== */
+.personalized-icon {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+}
+
+.personalized-content {
+  background: linear-gradient(135deg, #fefbf2 0%, #fef3c7 100%);
+  border: 1px solid #fed7aa;
+  border-radius: var(--radius-xl);
+  margin: var(--space-4);
+  position: relative;
+}
+
+.personalized-content::before {
+  content: '🎯';
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  font-size: 1.5rem;
+  opacity: 0.6;
+}
+
+/* ===== 个性化升级 ===== */
+.personalization-upgrade {
+  margin-bottom: var(--space-8);
+}
+
+.upgrade-card {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 1px solid #bae6fd;
+  border-radius: var(--radius-2xl);
+  padding: var(--space-8);
+  text-align: center;
+}
+
+.upgrade-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.upgrade-icon {
+  font-size: 2rem;
+}
+
+.upgrade-content h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.upgrade-content p {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.upgrade-actions {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+/* ===== 个性化表单 ===== */
+.personalization-form {
+  margin-bottom: var(--space-8);
+}
+
+.form-card {
+  background: var(--bg-primary);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-light);
+  overflow: hidden;
+}
+
+.form-header {
+  background: linear-gradient(135deg, var(--primary-50) 0%, var(--primary-100) 100%);
+  padding: var(--space-6) var(--space-8);
+  text-align: center;
+}
+
+.form-header h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.form-header p {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.form-content {
+  padding: var(--space-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.form-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.radio-group, .checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.radio-option, .checkbox-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+  background: var(--bg-primary);
+}
+
+.radio-option:hover, .checkbox-option:hover {
+  border-color: var(--primary-300);
+  background: var(--primary-50);
+}
+
+.radio-option input, .checkbox-option input {
+  margin: 0;
+}
+
+.radio-option input:checked + span,
+.checkbox-option input:checked + span {
+  color: var(--primary-600);
+  font-weight: 600;
+}
+
+.radio-option:has(input:checked),
+.checkbox-option:has(input:checked) {
+  border-color: var(--primary-500);
+  background: var(--primary-100);
+}
+
+.form-actions {
+  padding: var(--space-6) var(--space-8);
+  background: var(--bg-secondary);
+  display: flex;
+  justify-content: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
 /* ===== 操作按钮 ===== */
 .action-section {
   display: flex;
@@ -1247,6 +1807,28 @@ const formatAnalysis = (analysis: string) => {
 
 /* ===== 响应式设计 ===== */
 @media (max-width: 768px) {
+  .upgrade-header {
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .upgrade-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .form-content {
+    padding: var(--space-6);
+  }
+
+  .radio-group, .checkbox-group {
+    flex-direction: column;
+  }
+
+  .form-actions {
+    flex-direction: column;
+    align-items: center;
+  }
   .page-header {
     padding: var(--space-12) 0 var(--space-16);
   }

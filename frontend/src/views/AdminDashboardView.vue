@@ -578,7 +578,10 @@ const generateQRCode = async (url: string) => {
   if (qrCodeElement.value) {
     try {
       qrCodeElement.value.innerHTML = ''
-      await QRCode.toCanvas(qrCodeElement.value, url, {
+      
+      // 创建canvas元素
+      const canvas = document.createElement('canvas')
+      await QRCode.toCanvas(canvas, url, {
         width: 200,
         margin: 2,
         color: {
@@ -586,19 +589,56 @@ const generateQRCode = async (url: string) => {
           light: '#FFFFFF'
         }
       })
+      
+      // 将canvas添加到容器中
+      qrCodeElement.value.appendChild(canvas)
     } catch (error) {
       console.error('生成二维码失败:', error)
+      // 如果二维码生成失败，显示文本链接作为备选
+      qrCodeElement.value.innerHTML = `<div style="padding: 20px; text-align: center; border: 1px dashed #ccc;">
+        <p>二维码生成失败</p>
+        <p style="font-size: 12px; word-break: break-all;">${url}</p>
+      </div>`
     }
   }
 }
 
 const copyToClipboard = async (text: string) => {
   try {
-    await navigator.clipboard.writeText(text)
-    alert('链接已复制到剪贴板')
+    // 检查是否支持现代剪贴板API
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text)
+      alert('链接已复制到剪贴板')
+    } else {
+      // 使用传统的复制方法作为备选
+      const textArea = document.createElement('textarea')
+      textArea.value = text
+      textArea.style.position = 'fixed'
+      textArea.style.left = '-999999px'
+      textArea.style.top = '-999999px'
+      document.body.appendChild(textArea)
+      textArea.focus()
+      textArea.select()
+      
+      try {
+        const successful = document.execCommand('copy')
+        if (successful) {
+          alert('链接已复制到剪贴板')
+        } else {
+          throw new Error('复制命令执行失败')
+        }
+      } catch (err) {
+        console.error('传统复制方法也失败:', err)
+        // 显示文本供用户手动复制
+        prompt('复制失败，请手动复制以下链接:', text)
+      } finally {
+        document.body.removeChild(textArea)
+      }
+    }
   } catch (error) {
     console.error('复制失败:', error)
-    alert('复制失败，请手动复制')
+    // 最后的备选方案：显示文本供用户手动复制
+    prompt('复制失败，请手动复制以下链接:', text)
   }
 }
 
