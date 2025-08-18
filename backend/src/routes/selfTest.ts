@@ -52,6 +52,31 @@ router.post('/analyze', async (req, res) => {
 
     console.log('AI分析完成');
 
+    // 保存匿名评估结果到管理员统计
+    try {
+      const linkId = req.body.linkId || null; // 从请求中获取linkId
+      
+      // 调用管理员API保存结果
+      await fetch(`http://localhost:3000/api/admin/assessment-results`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          linkId,
+          scores: assessment.scores,
+          totalScore: assessment.totalScore,
+          dimensionScores: assessment.dimensionScores,
+          analysis: analysisResult.analysis
+        })
+      });
+      
+      console.log('评估结果已保存到统计系统');
+    } catch (error) {
+      console.error('保存评估结果失败:', error);
+      // 不影响用户体验，继续返回结果
+    }
+
     // 返回分析结果
     return res.json({
       code: 200,

@@ -7,6 +7,7 @@ export interface AuthenticatedRequest extends Request {
     id: number
     username: string
     email: string
+    role: string
   }
 }
 
@@ -29,7 +30,8 @@ export const authenticateToken = (
     req.user = {
       id: decoded.id,
       username: decoded.username,
-      email: decoded.email
+      email: decoded.email,
+      role: decoded.role
     }
     
     next()
@@ -64,7 +66,8 @@ export const optionalAuth = (
     req.user = {
       id: decoded.id,
       username: decoded.username,
-      email: decoded.email
+      email: decoded.email,
+      role: decoded.role
     }
   } catch (error) {
     // 可选认证失败时不抛出错误，继续执行
@@ -75,17 +78,22 @@ export const optionalAuth = (
 }
 
 // 角色权限检查中间件
-export const requireRole = (_roles: string[]) => {
+export const requireRole = (roles: string[]) => {
   return (req: AuthenticatedRequest, _res: Response, next: NextFunction): void => {
     if (!req.user) {
       throw new AppError('Authentication required', 401)
     }
 
-    // 这里需要从数据库获取用户角色信息
-    // 暂时跳过角色检查
+    if (!roles.includes(req.user.role)) {
+      throw new AppError('Insufficient permissions', 403)
+    }
+
     next()
   }
 }
+
+// 导出authMiddleware别名
+export const authMiddleware = authenticateToken
 
 // 管理员权限检查
 export const requireAdmin = requireRole(['admin'])

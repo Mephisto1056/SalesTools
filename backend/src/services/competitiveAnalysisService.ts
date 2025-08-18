@@ -1,5 +1,18 @@
 import axios from 'axios';
-import { buildCustomPrompt, PromptConfig } from '../prompts/competitiveAnalysisPrompt';
+import {
+  buildCustomPrompt,
+  PromptConfig,
+  buildProductInfoPrompt,
+  buildUniqueBenefitsPrompt,
+  buildProbingQuestionsPrompt,
+  buildCommonBenefitsPrompt,
+  buildWeaknessStrategiesPrompt,
+  buildDimensionSuggestionPrompt,
+  buildUniqueBenefitsSuggestionPrompt,
+  buildProbingQuestionsSuggestionPrompt,
+  buildCommonBenefitsSuggestionPrompt,
+  buildWeaknessStrategySuggestionPrompt
+} from '../prompts/competitiveAnalysisPrompt';
 
 // 竞争分析请求参数接口
 export interface CompetitiveAnalysisParams {
@@ -261,8 +274,286 @@ const generateMockData = (params: CompetitiveAnalysisParams): CompetitiveAnalysi
   };
 };
 
+// 会话数据接口
+interface AnalysisSession {
+  id: string;
+  customer_name: string;
+  my_product: string;
+  competitor_product: string;
+  created_at: Date;
+  steps: {
+    [key: number]: any;
+  };
+}
+
+// 内存存储（生产环境应使用数据库）
+const sessions = new Map<string, AnalysisSession>();
+
+// 生成会话ID
+const generateSessionId = (): string => {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+};
+
 // 竞争分析服务类
 class CompetitiveAnalysisService {
+  // 初始化分析会话
+  async initSession(params: CompetitiveAnalysisParams): Promise<{ session_id: string; basic_info: CompetitiveAnalysisParams }> {
+    const sessionId = generateSessionId();
+    
+    const session: AnalysisSession = {
+      id: sessionId,
+      customer_name: params.customer_name,
+      my_product: params.my_product,
+      competitor_product: params.competitor_product,
+      created_at: new Date(),
+      steps: {}
+    };
+    
+    sessions.set(sessionId, session);
+    
+    return {
+      session_id: sessionId,
+      basic_info: params
+    };
+  }
+
+  // 生成产品信息分析
+  async generateProductInfo(sessionId: string): Promise<any> {
+    const session = sessions.get(sessionId);
+    if (!session) {
+      throw new Error('会话不存在');
+    }
+
+    const prompt = buildProductInfoPrompt(session.my_product, session.competitor_product, session.customer_name);
+
+    const result = await this.callAI(prompt);
+    
+    // 保存到会话
+    session.steps[2] = result;
+    sessions.set(sessionId, session);
+    
+    return result;
+  }
+
+  // 生成独有利益分析
+  async generateUniqueBenefits(sessionId: string, importantFactors?: string[]): Promise<any> {
+    const session = sessions.get(sessionId);
+    if (!session) {
+      throw new Error('会话不存在');
+    }
+
+    const productInfo = session.steps[2];
+
+    const prompt = buildUniqueBenefitsPrompt(productInfo, importantFactors || [], session.customer_name);
+
+    const result = await this.callAI(prompt);
+    
+    // 保存到会话
+    session.steps[4] = result;
+    sessions.set(sessionId, session);
+    
+    return result;
+  }
+
+  // 生成探索性问题
+  async generateProbingQuestions(sessionId: string, uniqueBenefits?: any[]): Promise<any> {
+    const session = sessions.get(sessionId);
+    if (!session) {
+      throw new Error('会话不存在');
+    }
+
+    const benefits = uniqueBenefits || session.steps[4]?.unique_benefits || [];
+
+    const prompt = buildProbingQuestionsPrompt(benefits, session.customer_name);
+
+    const result = await this.callAI(prompt);
+    
+    // 保存到会话
+    session.steps[5] = result;
+    sessions.set(sessionId, session);
+    
+    return result;
+  }
+
+  // 生成共同利益分析
+  async generateCommonBenefits(sessionId: string): Promise<any> {
+    const session = sessions.get(sessionId);
+    if (!session) {
+      throw new Error('会话不存在');
+    }
+
+    const productInfo = session.steps[2];
+
+    const prompt = buildCommonBenefitsPrompt(productInfo, session.customer_name);
+
+    const result = await this.callAI(prompt);
+    
+    // 保存到会话
+    session.steps[6] = result;
+    sessions.set(sessionId, session);
+    
+    return result;
+  }
+
+  // 生成劣势应对策略
+  async generateWeaknessStrategies(sessionId: string): Promise<any> {
+    const session = sessions.get(sessionId);
+    if (!session) {
+      throw new Error('会话不存在');
+    }
+
+    const productInfo = session.steps[2];
+
+    const prompt = buildWeaknessStrategiesPrompt(productInfo, session.customer_name);
+
+    const result = await this.callAI(prompt);
+    
+    // 保存到会话
+    session.steps[7] = result;
+    sessions.set(sessionId, session);
+    
+    return result;
+  }
+
+  // 更新步骤数据
+  async updateStepData(sessionId: string, step: number, data: any): Promise<void> {
+    const session = sessions.get(sessionId);
+    if (!session) {
+      throw new Error('会话不存在');
+    }
+
+    session.steps[step] = data;
+    sessions.set(sessionId, session);
+  }
+
+  // 获取会话数据
+  async getSessionData(sessionId: string): Promise<AnalysisSession> {
+    const session = sessions.get(sessionId);
+    if (!session) {
+      throw new Error('会话不存在');
+    }
+
+    return session;
+  }
+
+  // 生成最终报告
+  async generateFinalReport(sessionId: string): Promise<any> {
+    const session = sessions.get(sessionId);
+    if (!session) {
+      throw new Error('会话不存在');
+    }
+
+    return {
+      basic_info: {
+        customer_name: session.customer_name,
+        my_product: session.my_product,
+        competitor_product: session.competitor_product,
+        created_at: session.created_at
+      },
+      analysis_data: session.steps,
+      summary: {
+        total_steps: Object.keys(session.steps).length,
+        completed_at: new Date()
+      }
+    };
+  }
+
+  // AI辅助：单个维度建议
+  async getDimensionSuggestion(sessionId: string, dimension: string): Promise<any> {
+    const session = sessions.get(sessionId);
+    if (!session) {
+      throw new Error('会话不存在');
+    }
+
+    const prompt = buildDimensionSuggestionPrompt(
+      dimension,
+      session.my_product,
+      session.competitor_product,
+      session.customer_name
+    );
+
+    const result = await this.callAI(prompt);
+    return result;
+  }
+
+  // AI辅助：独有利益建议
+  async getUniqueBenefitsSuggestion(sessionId: string, comparisonData: any, importantFactors: string[]): Promise<any> {
+    const session = sessions.get(sessionId);
+    if (!session) {
+      throw new Error('会话不存在');
+    }
+
+    const prompt = buildUniqueBenefitsSuggestionPrompt(comparisonData, importantFactors, session.customer_name);
+    const result = await this.callAI(prompt);
+    return result;
+  }
+
+  // AI辅助：探索性问题建议
+  async getProbingQuestionsSuggestion(sessionId: string, uniqueBenefits: any[]): Promise<any> {
+    const session = sessions.get(sessionId);
+    if (!session) {
+      throw new Error('会话不存在');
+    }
+
+    const prompt = buildProbingQuestionsSuggestionPrompt(uniqueBenefits, session.customer_name);
+    const result = await this.callAI(prompt);
+    return result;
+  }
+
+  // AI辅助：共同利益建议
+  async getCommonBenefitsSuggestion(sessionId: string, comparisonData: any): Promise<any> {
+    const session = sessions.get(sessionId);
+    if (!session) {
+      throw new Error('会话不存在');
+    }
+
+    const prompt = buildCommonBenefitsSuggestionPrompt(comparisonData, session.customer_name);
+    const result = await this.callAI(prompt);
+    return result;
+  }
+
+  // AI辅助：劣势应对建议
+  async getWeaknessStrategySuggestion(sessionId: string, comparisonData: any): Promise<any> {
+    const session = sessions.get(sessionId);
+    if (!session) {
+      throw new Error('会话不存在');
+    }
+
+    const prompt = buildWeaknessStrategySuggestionPrompt(comparisonData, session.customer_name);
+    const result = await this.callAI(prompt);
+    return result;
+  }
+
+  // 调用AI的通用方法
+  private async callAI(prompt: string): Promise<any> {
+    const config = getAIAPIConfig();
+    
+    // 尝试调用不同的AI API，按优先级顺序
+    const apiMethods = [
+      { name: 'KIMI', method: callKimiAPI, enabled: !!config.KIMI_API_KEY },
+      { name: 'OpenAI', method: callOpenAIAPI, enabled: !!config.OPENAI_API_KEY }
+    ];
+
+    for (const api of apiMethods) {
+      if (api.enabled) {
+        try {
+          console.log(`尝试使用 ${api.name} API...`);
+          const result = await api.method(prompt);
+          console.log(`${api.name} API 调用成功`);
+          return result;
+        } catch (error) {
+          console.error(`${api.name} API 调用失败:`, error);
+          // 继续尝试下一个API
+        }
+      }
+    }
+
+    // 如果所有API都失败，返回模拟数据
+    console.log('所有AI API调用失败，返回模拟数据');
+    return { error: 'AI服务暂时不可用，请稍后重试' };
+  }
+
+  // 保留原有的一键生成方法（向后兼容）
   async generateAnalysis(params: CompetitiveAnalysisParams): Promise<CompetitiveAnalysisResult> {
     // 使用提取的prompt模板
     const promptConfig = getPromptConfig();

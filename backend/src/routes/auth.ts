@@ -13,13 +13,15 @@ const users = [
     id: 1,
     username: 'admin',
     email: 'admin@example.com',
-    password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi' // password
+    password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password
+    role: 'admin'
   },
   {
     id: 2,
     username: 'user',
     email: 'user@example.com',
-    password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi' // password
+    password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password
+    role: 'user'
   }
 ]
 
@@ -32,7 +34,8 @@ const generateToken = (user: any): string => {
     {
       id: user.id,
       username: user.username,
-      email: user.email
+      email: user.email,
+      role: user.role
     },
     jwtSecret,
     { expiresIn: jwtExpire } as jwt.SignOptions
@@ -107,6 +110,7 @@ router.post('/login', loginRateLimiter, loginValidation, asyncHandler(async (req
         id: user.id,
         username: user.username,
         email: user.email,
+        role: user.role,
         createdAt: new Date().toISOString()
       }
     }
@@ -138,7 +142,8 @@ router.post('/register', registerValidation, asyncHandler(async (req: Request, r
     id: users.length + 1,
     username,
     email,
-    password: hashedPassword
+    password: hashedPassword,
+    role: 'user' // 默认注册为普通用户
   }
 
   users.push(newUser)
@@ -155,6 +160,7 @@ router.post('/register', registerValidation, asyncHandler(async (req: Request, r
         id: newUser.id,
         username: newUser.username,
         email: newUser.email,
+        role: newUser.role,
         createdAt: new Date().toISOString()
       }
     }

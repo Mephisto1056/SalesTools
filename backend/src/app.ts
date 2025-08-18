@@ -13,6 +13,7 @@ import userRoutes from '@/routes/user'
 import healthRoutes from '@/routes/health'
 import competitiveAnalysisRoutes from '@/routes/competitiveAnalysis'
 import selfTestRoutes from '@/routes/selfTest'
+import adminRoutes from '@/routes/admin'
 
 // 加载环境变量
 dotenv.config()
@@ -46,6 +47,7 @@ app.use('/api/auth', authRoutes)
 app.use('/api/user', userRoutes)
 app.use('/api/competitive-analysis', competitiveAnalysisRoutes)
 app.use('/api/self-test', selfTestRoutes)
+app.use('/api/admin', adminRoutes)
 
 // 404 处理
 app.use(notFoundHandler)
