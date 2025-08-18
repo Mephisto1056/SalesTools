@@ -5,7 +5,7 @@ FROM node:18-alpine
 WORKDIR /app
 
 # 安装 dumb-init (用于正确处理信号)
-RUN apk add --no-cache dumb-init
+RUN apk add --no-cache dumb-init curl
 
 # 创建非 root 用户
 RUN addgroup -g 1001 -S nodejs
@@ -15,7 +15,7 @@ RUN adduser -S nodejs -u 1001
 COPY package*.json ./
 
 # 安装依赖
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci && npm cache clean --force
 
 # 复制源代码
 COPY . .
@@ -34,7 +34,7 @@ EXPOSE 3000
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node healthcheck.js
+  CMD curl -f http://localhost:3000/health || exit 1
 
 # 启动应用
 ENTRYPOINT ["dumb-init", "--"]
