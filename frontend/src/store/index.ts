@@ -12,6 +12,7 @@ export const useUserStore = defineStore("user", () => {
   // 计算属性
   const isLoggedIn = computed(() => !!token.value);
   const username = computed(() => userInfo.value?.username || "");
+  const isAdmin = computed(() => userInfo.value?.role === 'admin');
 
   // 登录
   const login = async (loginData: LoginRequest) => {
@@ -74,6 +75,8 @@ export const useUserStore = defineStore("user", () => {
     login,
     logout,
     fetchUserInfo,
+    // 计算属性
+    isAdmin,
   };
 });
 

@@ -29,10 +29,13 @@
               <span>首页</span>
             </router-link>
             <router-link to="/self-test" class="nav-link">
-              <span>自我测试</span>
+              <span>辅导能力评估</span>
             </router-link>
             <router-link to="/competitive-analysis" class="nav-link">
               <span>竞争分析</span>
+            </router-link>
+            <router-link v-if="userStore.isAdmin" to="/admin" class="nav-link admin-link">
+              <span>管理控制台</span>
             </router-link>
             <router-link to="/about" class="nav-link">
               <span>关于</span>
@@ -47,7 +50,15 @@
                 <path d="m21 21-4.35-4.35"/>
               </svg>
             </button>
-            <button class="btn btn-primary btn-sm">开始使用</button>
+            <router-link v-if="!userStore.isLoggedIn" to="/login" class="btn btn-primary btn-sm">
+              登录
+            </router-link>
+            <div v-else class="user-menu">
+              <span class="user-name">{{ userStore.username }}</span>
+              <button class="btn btn-ghost btn-sm" @click="userStore.logout">
+                退出
+              </button>
+            </div>
             
             <!-- 移动端菜单按钮 -->
             <button 
@@ -72,16 +83,27 @@
               <span>首页</span>
             </router-link>
             <router-link to="/self-test" class="mobile-nav-link" @click="closeMobileMenu">
-              <span>自我测试</span>
+              <span>辅导能力评估</span>
             </router-link>
             <router-link to="/competitive-analysis" class="mobile-nav-link" @click="closeMobileMenu">
               <span>竞争分析</span>
+            </router-link>
+            <router-link v-if="userStore.isAdmin" to="/admin" class="mobile-nav-link admin-link" @click="closeMobileMenu">
+              <span>管理控制台</span>
             </router-link>
             <router-link to="/about" class="mobile-nav-link" @click="closeMobileMenu">
               <span>关于</span>
             </router-link>
             <div class="mobile-nav-divider"></div>
-            <button class="btn btn-primary w-full">开始使用</button>
+            <router-link v-if="!userStore.isLoggedIn" to="/login" class="btn btn-primary w-full" @click="closeMobileMenu">
+              登录
+            </router-link>
+            <div v-else class="mobile-user-menu">
+              <span class="user-name">{{ userStore.username }}</span>
+              <button class="btn btn-ghost w-full" @click="userStore.logout">
+                退出
+              </button>
+            </div>
           </div>
         </div>
       </nav>
@@ -129,8 +151,10 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useUserStore } from '@/store'
 
 const isMobileMenuOpen = ref(false)
+const userStore = useUserStore()
 
 const toggleMobileMenu = () => {
   isMobileMenuOpen.value = !isMobileMenuOpen.value
@@ -254,11 +278,46 @@ onUnmounted(() => {
   border-radius: 1px;
 }
 
+.admin-link {
+  background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+  color: white !important;
+  border-radius: var(--radius-lg);
+}
+
+.admin-link:hover {
+  background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
+  color: white !important;
+}
+
 /* 导航栏操作区 */
 .navbar-actions {
   display: flex;
   align-items: center;
   gap: var(--space-3);
+}
+
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.user-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.mobile-user-menu {
+  text-align: center;
+  padding: var(--space-2) 0;
+}
+
+.mobile-user-menu .user-name {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 /* 移动端菜单按钮 */

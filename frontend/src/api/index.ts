@@ -59,6 +59,7 @@ export interface LoginResponse {
     id: number;
     username: string;
     email: string;
+    role: string;
     createdAt: string;
   };
 }
@@ -67,6 +68,7 @@ export interface UserProfile {
   id: number;
   username: string;
   email: string;
+  role: string;
   createdAt: string;
 }
 

@@ -28,6 +28,12 @@ const routes: RouteRecordRaw[] = [
     component: () => import("../views/SelfTestView.vue"),
   },
   {
+    path: "/admin",
+    name: "AdminDashboard",
+    component: () => import("../views/AdminDashboardView.vue"),
+    meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  {
     path: "/:pathMatch(.*)*",
     name: "NotFound",
     component: () => import("../views/NotFoundView.vue"),

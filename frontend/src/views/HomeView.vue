@@ -5,7 +5,7 @@
       <div class="hero-container">
         <div class="hero-content">
           <div class="hero-badge animate-fade-in-up">
-            <span class="badge-text"> 现代化销售提升工具</span>
+            <span class="badge-text">销售经理能力提升平台</span>
           </div>
           
           <h1 class="hero-title animate-fade-in-up">
@@ -14,7 +14,7 @@
           </h1>
           
           <p class="hero-description animate-fade-in-up">
-            一个现代化的销售管理提升工具，帮助您提升销售效率，优化客户关系，实现业务增长。
+            专为销售经理打造的辅导能力提升工具，帮助您掌握科学的辅导方法，提升团队管理效能，培养高绩效销售团队。
           </p>
           
           <div class="hero-actions animate-fade-in-up">
@@ -25,7 +25,7 @@
                 <path d="M3 12c1 0 3-1 3-3s-2-3-3-3-3 1-3 3 2 3 3 3"/>
                 <path d="M3 12h6m6 0h6"/>
               </svg>
-              自我测试
+              辅导能力评估
             </button>
             <button class="btn btn-secondary btn-lg" @click="handleGetStarted">
               开始使用
@@ -47,7 +47,7 @@
                 <span class="dot yellow"></span>
                 <span class="dot green"></span>
               </div>
-              <span class="hero-card-title">销售辅导工具箱</span>
+              <span class="hero-card-title">销售经理工具箱</span>
             </div>
             <div class="hero-card-content">
               <div class="tools-grid">
@@ -60,7 +60,7 @@
                       <path d="M3 12h6m6 0h6"/>
                     </svg>
                   </div>
-                  <span class="tool-name">自我测试</span>
+                  <span class="tool-name">辅导能力评估</span>
                   <span class="tool-status">已启用</span>
                 </div>
                 <div class="tool-item active">
@@ -113,9 +113,9 @@
     <section class="features-section">
       <div class="features-container">
         <div class="section-header">
-          <h2 class="section-title">全方位的销售辅助</h2>
+          <h2 class="section-title">全方位的辅导能力提升</h2>
           <p class="section-description">
-            为现代销售团队量身定制的全方位辅助工具集合，20个专业功能模块
+            为销售经理量身定制的辅导能力提升工具集合，20个专业功能模块助您成为优秀的教练型领导者
           </p>
         </div>
 
@@ -130,9 +130,9 @@
                 <path d="M3 12h6m6 0h6"/>
               </svg>
             </div>
-            <h3 class="feature-title">自我测试</h3>
+            <h3 class="feature-title">辅导能力评估</h3>
             <p class="feature-description">
-              评估您的销售技能和知识水平，发现改进空间，提升专业能力。
+              评估您的销售辅导能力水平，识别强项与改进空间，制定个性化提升计划。
             </p>
             <div class="feature-status">
               <span class="status-badge active">已启用</span>
@@ -149,7 +149,7 @@
             </div>
             <h3 class="feature-title">市场趋势评估</h3>
             <p class="feature-description">
-              回顾市场环境的长期变化，分析业务所在区域的潜力。
+              指导团队分析市场环境变化，帮助销售人员识别区域业务潜力。
             </p>
             <div class="feature-status">
               <span class="status-badge coming-soon">即将推出</span>
@@ -165,7 +165,7 @@
             </div>
             <h3 class="feature-title">客户收入分析</h3>
             <p class="feature-description">
-              将销售目标与客户收入趋势结合，聚焦于高潜力客户。
+              教导团队将销售目标与客户收入趋势结合，指导聚焦高潜力客户。
             </p>
             <div class="feature-status">
               <span class="status-badge coming-soon">即将推出</span>
@@ -181,7 +181,7 @@
             </div>
             <h3 class="feature-title">洞察客户需求</h3>
             <p class="feature-description">
-              发现客户业务计划背后隐藏的个人需求，以优化沟通。
+              培养团队洞察客户业务计划背后隐藏需求的能力，优化客户沟通技巧。
             </p>
             <div class="feature-status">
               <span class="status-badge coming-soon">即将推出</span>
@@ -197,7 +197,7 @@
             </div>
             <h3 class="feature-title">审视自我需求</h3>
             <p class="feature-description">
-              将自己的个人需求与客户需求联系，调整销售行为。
+              指导销售人员审视个人需求与客户需求的关联，调整销售行为。
             </p>
             <div class="feature-status">
               <span class="status-badge coming-soon">即将推出</span>
