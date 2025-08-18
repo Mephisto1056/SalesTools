@@ -29,8 +29,30 @@ app.use(express.json({ limit: '10mb' })) // JSON 解析
 app.use(express.urlencoded({ extended: true, limit: '10mb' })) // URL 编码解析
 
 // CORS 配置
+const allowedOrigins = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
+  : ['http://localhost:5173'];
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    // 允许没有 origin 的请求（如移动应用、Postman等）
+    if (!origin) return callback(null, true);
+    
+    // 检查是否在允许的源列表中
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    // 在开发环境中，允许所有 localhost 和 127.0.0.1 的请求
+    if (process.env.NODE_ENV === 'development') {
+      const url = new URL(origin);
+      if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+        return callback(null, true);
+      }
+    }
+    
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
