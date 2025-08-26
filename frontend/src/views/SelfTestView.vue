@@ -284,7 +284,23 @@
               </div>
             </div>
             
-            <button 
+            <!-- Admin专用随机填充按钮 -->
+            <div v-if="userStore.isAdmin" class="admin-tools">
+              <button
+                class="btn btn-secondary btn-sm admin-random-btn"
+                @click="randomFillScores"
+                :disabled="isLoading"
+                title="管理员专用：一键随机填充评估数据，确保3个小项得分小于18分"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                </svg>
+                一键随机填充
+              </button>
+              <span class="admin-hint">管理员模式：自动填充数据，3个小项将小于18分</span>
+            </div>
+            
+            <button
               class="btn btn-primary btn-lg"
               @click="submitAssessment"
               :disabled="!isFormComplete || isLoading"
@@ -300,6 +316,52 @@
               </svg>
               {{ isLoading ? '正在分析中...' : '提交评估' }}
             </button>
+
+            <!-- AI分析进度条 -->
+            <div v-if="isLoading" class="analysis-progress animate-fade-in-up">
+              <div class="progress-container">
+                <div class="progress-header">
+                  <div class="progress-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="animate-pulse">
+                      <path d="M9 12l2 2 4-4"/>
+                      <path d="M21 12c-1 0-3-1-3-3s2-3 3-3 3 1 3 3-2 3-3 3"/>
+                      <path d="M3 12c1 0 3-1-3-3s-2-3-3-3-3 1-3 3 2 3 3 3"/>
+                      <path d="M3 12h6m6 0h6"/>
+                    </svg>
+                  </div>
+                  <div class="progress-content">
+                    <h4>AI正在分析您的评估结果</h4>
+                    <p>{{ analysisStage }}</p>
+                  </div>
+                </div>
+                
+                <div class="progress-bar-container">
+                  <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" :style="{ width: analysisProgress + '%' }"></div>
+                  </div>
+                  <span class="progress-percentage">{{ Math.floor(analysisProgress) }}%</span>
+                </div>
+                
+                <div class="progress-steps">
+                  <div class="step" :class="{ active: analysisProgress >= 25, completed: analysisProgress > 25 }">
+                    <div class="step-icon">1</div>
+                    <span>数据处理</span>
+                  </div>
+                  <div class="step" :class="{ active: analysisProgress >= 50, completed: analysisProgress > 50 }">
+                    <div class="step-icon">2</div>
+                    <span>能力分析</span>
+                  </div>
+                  <div class="step" :class="{ active: analysisProgress >= 75, completed: analysisProgress > 75 }">
+                    <div class="step-icon">3</div>
+                    <span>生成建议</span>
+                  </div>
+                  <div class="step" :class="{ active: analysisProgress >= 100, completed: analysisProgress >= 100 }">
+                    <div class="step-icon">4</div>
+                    <span>完成分析</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -674,6 +736,10 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { request } from '../api';
+import { useUserStore } from '../store';
+
+// 用户store
+const userStore = useUserStore();
 
 // 问题数据
 const trustQuestions = {
@@ -772,6 +838,8 @@ const personalizedAnalysis = ref('');
 const analysisResult = ref<any>(null);
 const showPersonalForm = ref(false);
 const isPersonalizing = ref(false);
+const analysisProgress = ref(0);
+const analysisStage = ref('准备开始分析...');
 const personalInfo = ref({
   experience: '',
   teamSize: '',
@@ -923,11 +991,45 @@ const levelClass = computed(() => {
 });
 
 
+// 进度控制函数
+const startAnalysisProgress = () => {
+  analysisProgress.value = 0;
+  analysisStage.value = 'AI分析中 - 正在处理评估数据...';
+  
+  // 模拟分析进度，更贴近实际API调用时间，确保整数显示
+  const progressInterval = setInterval(() => {
+    if (analysisProgress.value < 20) {
+      analysisProgress.value = Math.floor(analysisProgress.value + 1);
+      analysisStage.value = 'AI分析中 - 正在处理评估数据...';
+    } else if (analysisProgress.value < 40) {
+      analysisProgress.value = Math.floor(analysisProgress.value + 1);
+      analysisStage.value = 'AI分析中 - 正在分析能力维度...';
+    } else if (analysisProgress.value < 70) {
+      analysisProgress.value = Math.floor(analysisProgress.value + 1);
+      analysisStage.value = 'AI分析中 - 正在生成个性化建议...';
+    } else if (analysisProgress.value < 90) {
+      analysisProgress.value = Math.floor(analysisProgress.value + 1);
+      analysisStage.value = 'AI分析中 - 正在完善分析报告...';
+    } else if (analysisProgress.value < 95) {
+      analysisProgress.value = Math.floor(analysisProgress.value + 1);
+      analysisStage.value = 'AI分析中 - 分析即将完成...';
+    }
+    
+    if (analysisProgress.value >= 95) {
+      clearInterval(progressInterval);
+      analysisStage.value = 'AI分析中 - 分析即将完成...';
+    }
+  }, 300);
+  
+  return progressInterval;
+};
+
 // 方法
 const submitAssessment = async () => {
   if (!isFormComplete.value) return;
   
   isLoading.value = true;
+  const progressInterval = startAnalysisProgress();
   
   try {
     const assessmentData = {
@@ -942,14 +1044,26 @@ const submitAssessment = async () => {
     };
     
     const response = await request.post<{data: any}>('/self-test/analyze', assessmentData);
+    
+    // 确保进度条完成
+    clearInterval(progressInterval);
+    analysisProgress.value = 100;
+    analysisStage.value = '分析完成！';
+    
+    // 短暂延迟显示完成状态
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
     analysisResult.value = response.data;
     aiAnalysis.value = response.data.analysis;
     showResult.value = true;
   } catch (error) {
     console.error('提交评估失败:', error);
+    clearInterval(progressInterval);
     alert('提交失败，请重试');
   } finally {
     isLoading.value = false;
+    analysisProgress.value = 0;
+    analysisStage.value = '准备开始分析...';
   }
 };
 
@@ -1025,9 +1139,133 @@ const toggleChallenge = (challenge: string) => {
     personalInfo.value.challenges.push(challenge);
   }
 };
+
+// Admin一键随机选择功能
+const randomFillScores = () => {
+  if (!userStore.isAdmin) return;
+  
+  // 生成1-5分的随机分数
+  const generateRandomScore = () => Math.floor(Math.random() * 5) + 1;
+  
+  // 生成总分小于18的5个分数
+  const generateLowScores = () => {
+    let totalScore = 0;
+    const itemScores = [];
+    
+    // 生成前4个分数
+    for (let i = 0; i < 4; i++) {
+      const maxScore = Math.min(5, 17 - totalScore - (4 - i));
+      const minScore = Math.max(1, 17 - totalScore - 5 * (4 - i));
+      const score = Math.floor(Math.random() * (maxScore - minScore + 1)) + minScore;
+      itemScores.push(score);
+      totalScore += score;
+    }
+    
+    // 最后一个分数确保总分小于18
+    const lastScore = Math.min(5, Math.max(1, 17 - totalScore));
+    itemScores.push(lastScore);
+    
+    return itemScores;
+  };
+  
+  // 所有子维度
+  const subDimensions = [
+    { dimension: 'trust', subDimension: 'environment' },
+    { dimension: 'trust', subDimension: 'communication' },
+    { dimension: 'connect', subDimension: 'insight' },
+    { dimension: 'connect', subDimension: 'dialogue' },
+    { dimension: 'enable', subDimension: 'support' },
+    { dimension: 'enable', subDimension: 'effectiveness' },
+    { dimension: 'develop', subDimension: 'growth' },
+    { dimension: 'develop', subDimension: 'inheritance' }
+  ];
+  
+  // 随机选择3个小项作为低分项
+  const shuffled = [...subDimensions].sort(() => 0.5 - Math.random());
+  const lowScoreItems = shuffled.slice(0, 3);
+  
+  // 为每个子维度生成分数
+  subDimensions.forEach(item => {
+    const isLowScore = lowScoreItems.includes(item);
+    const itemScores = isLowScore ? generateLowScores() : Array(5).fill(null).map(() => generateRandomScore());
+    
+    // 安全地设置分数
+    if (item.dimension === 'trust') {
+      if (item.subDimension === 'environment') {
+        scores.value.trust.environment = itemScores;
+      } else if (item.subDimension === 'communication') {
+        scores.value.trust.communication = itemScores;
+      }
+    } else if (item.dimension === 'connect') {
+      if (item.subDimension === 'insight') {
+        scores.value.connect.insight = itemScores;
+      } else if (item.subDimension === 'dialogue') {
+        scores.value.connect.dialogue = itemScores;
+      }
+    } else if (item.dimension === 'enable') {
+      if (item.subDimension === 'support') {
+        scores.value.enable.support = itemScores;
+      } else if (item.subDimension === 'effectiveness') {
+        scores.value.enable.effectiveness = itemScores;
+      }
+    } else if (item.dimension === 'develop') {
+      if (item.subDimension === 'growth') {
+        scores.value.develop.growth = itemScores;
+      } else if (item.subDimension === 'inheritance') {
+        scores.value.develop.inheritance = itemScores;
+      }
+    }
+  });
+  
+  console.log('随机填充完成，低分项:', lowScoreItems.map(item => `${item.dimension}.${item.subDimension}`));
+};
 </script>
 
 <style scoped>
+/* ===== Admin工具样式 ===== */
+.admin-tools {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border: 2px dashed #6c757d;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.admin-random-btn {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  border: none;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
+}
+
+.admin-random-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #218838 0%, #1ea085 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+}
+
+.admin-random-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.admin-hint {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: #6c757d;
+  font-style: italic;
+}
+
 /* ===== 页面整体布局 ===== */
 .self-test {
   min-height: 100vh;
@@ -1904,6 +2142,181 @@ const toggleChallenge = (challenge: string) => {
     width: 36px;
     height: 36px;
     font-size: 0.875rem;
+  }
+}
+
+/* ===== AI分析进度条样式 ===== */
+.analysis-progress {
+  margin-top: var(--space-6);
+  background: var(--bg-primary);
+  border-radius: var(--radius-2xl);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.progress-container {
+  padding: var(--space-6);
+}
+
+.progress-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.progress-icon {
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-600) 100%);
+  border-radius: var(--radius-xl);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+.progress-content h4 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-1) 0;
+}
+
+.progress-content p {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.progress-bar-container {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+.progress-bar-bg {
+  flex: 1;
+  height: 8px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-500), var(--primary-600));
+  border-radius: var(--radius-full);
+  transition: width 0.3s ease;
+}
+
+.progress-percentage {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 40px;
+  text-align: right;
+}
+
+.progress-steps {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+
+.step.active {
+  opacity: 1;
+}
+
+.step.completed {
+  opacity: 1;
+}
+
+.step-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.step.active .step-icon {
+  background: var(--primary-500);
+  color: white;
+}
+
+.step.completed .step-icon {
+  background: var(--success-500);
+  color: white;
+}
+
+.step span {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  text-align: center;
+  transition: color 0.3s ease;
+}
+
+.step.active span,
+.step.completed span {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .progress-header {
+    flex-direction: column;
+    text-align: center;
+    gap: var(--space-3);
+  }
+  
+  .progress-steps {
+    flex-wrap: wrap;
+    gap: var(--space-4);
+  }
+  
+  .step {
+    min-width: 80px;
+  }
+}
+
+@media (max-width: 640px) {
+  .progress-container {
+    padding: var(--space-4);
+  }
+  
+  .progress-icon {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .progress-content h4 {
+    font-size: 1rem;
+  }
+  
+  .step-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 0.75rem;
   }
 }
 

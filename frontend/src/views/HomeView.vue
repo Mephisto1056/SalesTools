@@ -73,15 +73,16 @@
                   <span class="tool-name">竞争分析</span>
                   <span class="tool-status">已启用</span>
                 </div>
-                <div class="tool-item coming-soon">
+                <div class="tool-item active">
                   <div class="tool-icon">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M12 2v20"/>
-                      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                      <path d="M12 9v4"/>
+                      <path d="M12 17h.01"/>
+                      <circle cx="12" cy="12" r="10"/>
                     </svg>
                   </div>
-                  <span class="tool-name">收入分析</span>
-                  <span class="tool-status">即将推出</span>
+                  <span class="tool-name">失败分析</span>
+                  <span class="tool-status">已启用</span>
                 </div>
                 <div class="tool-item coming-soon">
                   <div class="tool-icon">
@@ -97,10 +98,10 @@
               <div class="progress-section">
                 <div class="progress-header">
                   <span class="progress-title">工具完成度</span>
-                  <span class="progress-value">10%</span>
+                  <span class="progress-value">15%</span>
                 </div>
                 <div class="progress-bar">
-                  <div class="progress-fill" style="width: 10%"></div>
+                  <div class="progress-fill" style="width: 15%"></div>
                 </div>
               </div>
             </div>
@@ -455,6 +456,24 @@
               <span class="status-badge coming-soon">即将推出</span>
             </div>
           </div>
+
+          <!-- 失败分析功能 -->
+          <div class="feature-card active" @click="handleFailureAnalysis">
+            <div class="feature-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 9v4"/>
+                <path d="M12 17h.01"/>
+                <circle cx="12" cy="12" r="10"/>
+              </svg>
+            </div>
+            <h3 class="feature-title">失败分析</h3>
+            <p class="feature-description">
+              深入分析销售失败案例，识别关键失误点，总结经验教训，制定改进策略，避免重复犯错。
+            </p>
+            <div class="feature-status">
+              <span class="status-badge active">已启用</span>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -482,6 +501,10 @@ const handleSelfTest = () => {
 
 const handleCompetitiveAnalysis = () => {
   router.push("/competitive-analysis");
+};
+
+const handleFailureAnalysis = () => {
+  router.push("/failure-analysis");
 };
 
 // 添加滚动动画
@@ -989,5 +1012,6 @@ onMounted(() => {
 .feature-card:nth-child(18) { animation-delay: 1.8s; }
 .feature-card:nth-child(19) { animation-delay: 1.9s; }
 .feature-card:nth-child(20) { animation-delay: 2.0s; }
+.feature-card:nth-child(21) { animation-delay: 2.1s; }
 
 </style>

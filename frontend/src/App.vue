@@ -34,6 +34,9 @@
             <router-link to="/competitive-analysis" class="nav-link">
               <span>竞争分析</span>
             </router-link>
+            <router-link to="/failure-analysis" class="nav-link">
+              <span>失败分析</span>
+            </router-link>
             <router-link v-if="userStore.isAdmin" to="/admin" class="nav-link admin-link">
               <span>管理控制台</span>
             </router-link>
@@ -87,6 +90,9 @@
             </router-link>
             <router-link to="/competitive-analysis" class="mobile-nav-link" @click="closeMobileMenu">
               <span>竞争分析</span>
+            </router-link>
+            <router-link to="/failure-analysis" class="mobile-nav-link" @click="closeMobileMenu">
+              <span>失败分析</span>
             </router-link>
             <router-link v-if="userStore.isAdmin" to="/admin" class="mobile-nav-link admin-link" @click="closeMobileMenu">
               <span>管理控制台</span>

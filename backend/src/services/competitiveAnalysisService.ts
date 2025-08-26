@@ -85,7 +85,7 @@ const getPromptConfig = (): PromptConfig => ({
 });
 
 // 调用KIMI API
-const callKimiAPI = async (prompt: string): Promise<CompetitiveAnalysisResult> => {
+const callKimiAPI = async (prompt: string): Promise<any> => {
   const config = getAIAPIConfig();
   
   console.log('KIMI API配置检查:');
@@ -99,22 +99,23 @@ const callKimiAPI = async (prompt: string): Promise<CompetitiveAnalysisResult> =
 
   try {
     console.log('开始调用KIMI API...');
+    console.log('提示词长度:', prompt.length);
     
-    // 尝试不同的API调用方式
+    // 构建请求体
     let requestBody: any = {
-      model: 'kimi-k2-0711-preview',
+      model: 'moonshot-v1-8k',  // 使用更稳定的模型
       messages: [
         {
           role: 'user',
           content: prompt
         }
       ],
-      temperature: 0.2,
-      max_tokens: 8000
+      temperature: 0.3,
+      max_tokens: 4000,
+      stream: false
     };
 
-    // 尝试添加联网搜索功能（如果支持）
-    console.log('尝试启用联网搜索功能...');
+    console.log('发送请求到KIMI API...');
     
     const response = await axios.post(
       config.KIMI_API_URL,
@@ -124,32 +125,60 @@ const callKimiAPI = async (prompt: string): Promise<CompetitiveAnalysisResult> =
           'Authorization': `Bearer ${config.KIMI_API_KEY}`,
           'Content-Type': 'application/json'
         },
-        timeout: 180000 // 增加到180秒超时，适应k2模型的处理时间
+        timeout: 120000 // 120秒超时
       }
     );
 
     console.log('KIMI API响应状态:', response.status);
-    console.log('KIMI API响应数据结构:', Object.keys(response.data as any));
+    
+    const responseData = response.data as any;
+    if (!responseData || !responseData.choices || !responseData.choices[0]) {
+      throw new Error('KIMI API响应格式异常');
+    }
 
-    const content = (response.data as any).choices[0].message.content;
+    const content = responseData.choices[0].message.content;
+    console.log('KIMI API响应内容长度:', content.length);
+    console.log('KIMI API响应内容预览:', content.substring(0, 200) + '...');
     
     // 尝试解析JSON响应
     try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('AI响应中未找到有效的JSON格式');
+      // 先尝试直接解析
+      let jsonData;
+      try {
+        jsonData = JSON.parse(content);
+      } catch {
+        // 如果直接解析失败，尝试提取JSON部分
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          jsonData = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error('响应中未找到有效的JSON格式');
+        }
       }
-    } catch (parseError) {
+      
+      console.log('JSON解析成功，数据结构:', Object.keys(jsonData));
+      return jsonData;
+      
+    } catch (parseError: any) {
       console.error('JSON解析错误:', parseError);
-      throw new Error('AI响应格式错误，无法解析JSON');
+      console.error('原始响应内容:', content);
+      throw new Error(`AI响应格式错误，无法解析JSON: ${parseError?.message || '未知解析错误'}`);
     }
 
   } catch (error: any) {
-    console.error('KIMI API调用错误:', error);
+    console.error('KIMI API调用错误详情:', {
+      message: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data
+    });
+    
     if (error.response) {
-      throw new Error(`KIMI API错误: ${error.response.data?.error?.message || error.response.statusText}`);
+      const errorMsg = error.response.data?.error?.message ||
+                      error.response.data?.message ||
+                      error.response.statusText ||
+                      '未知API错误';
+      throw new Error(`KIMI API错误 (${error.response.status}): ${errorMsg}`);
     } else if (error.request) {
       throw new Error('网络连接错误，无法访问KIMI API');
     } else {
@@ -159,7 +188,7 @@ const callKimiAPI = async (prompt: string): Promise<CompetitiveAnalysisResult> =
 };
 
 // 调用OpenAI API (备用)
-const callOpenAIAPI = async (prompt: string): Promise<CompetitiveAnalysisResult> => {
+const callOpenAIAPI = async (prompt: string): Promise<any> => {
   const config = getAIAPIConfig();
   
   if (!config.OPENAI_API_KEY) {
@@ -189,18 +218,35 @@ const callOpenAIAPI = async (prompt: string): Promise<CompetitiveAnalysisResult>
       }
     );
 
-    const content = (response.data as any).choices[0].message.content;
+    const responseData = response.data as any;
+    if (!responseData || !responseData.choices || !responseData.choices[0]) {
+      throw new Error('OpenAI API响应格式异常');
+    }
+
+    const content = responseData.choices[0].message.content;
     
     try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('AI响应中未找到有效的JSON格式');
+      // 先尝试直接解析
+      let jsonData;
+      try {
+        jsonData = JSON.parse(content);
+      } catch {
+        // 如果直接解析失败，尝试提取JSON部分
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          jsonData = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error('响应中未找到有效的JSON格式');
+        }
       }
-    } catch (parseError) {
+      
+      console.log('OpenAI JSON解析成功，数据结构:', Object.keys(jsonData));
+      return jsonData;
+      
+    } catch (parseError: any) {
       console.error('JSON解析错误:', parseError);
-      throw new Error('AI响应格式错误，无法解析JSON');
+      console.error('原始响应内容:', content);
+      throw new Error(`AI响应格式错误，无法解析JSON: ${parseError?.message || '未知解析错误'}`);
     }
 
   } catch (error: any) {
@@ -548,9 +594,92 @@ class CompetitiveAnalysisService {
       }
     }
 
-    // 如果所有API都失败，返回模拟数据
-    console.log('所有AI API调用失败，返回模拟数据');
-    return { error: 'AI服务暂时不可用，请稍后重试' };
+    // 如果所有API都失败，根据提示词类型返回相应的默认数据
+    console.log('所有AI API调用失败，返回默认建议数据');
+    return this.generateFallbackResponse(prompt);
+  }
+
+  // 生成降级响应数据
+  private generateFallbackResponse(prompt: string): any {
+    // 根据提示词内容判断请求类型并返回相应的默认数据
+    if (prompt.includes('维度建议') || prompt.includes('dimension')) {
+      return {
+        my_product: "请手动填写我方产品在此维度的优势和特点。建议重点突出技术先进性、服务质量或成本效益等方面。",
+        competitor_product: "请手动填写竞争对手产品在此维度的特点。建议客观分析其优势和不足。",
+        sales_tips: "建议在此维度上重点强调我方产品的差异化优势，并准备相关的证据和案例支撑。"
+      };
+    }
+    
+    if (prompt.includes('独有利益') || prompt.includes('unique')) {
+      return {
+        suggested_benefits: [
+          {
+            description: "技术创新优势",
+            value: "为客户提供更先进的技术解决方案，提升工作效率",
+            evidence: "请补充具体的技术参数、认证或客户案例",
+            sales_angle: "强调技术领先性带来的长期价值"
+          },
+          {
+            description: "服务支持优势",
+            value: "提供更全面、及时的客户服务支持",
+            evidence: "请补充服务响应时间、支持团队规模等具体数据",
+            sales_angle: "突出服务质量对客户业务连续性的重要性"
+          }
+        ]
+      };
+    }
+    
+    if (prompt.includes('探索性问题') || prompt.includes('probing')) {
+      return {
+        question_suggestions: [
+          {
+            benefit: "对应的独有利益",
+            question1: "在您当前的工作流程中，哪些环节最需要提升效率？",
+            question2: "如果能够显著提升这些环节的效率，对您的业务会产生什么影响？",
+            purpose: "引导客户思考现状痛点，认识到改进的必要性",
+            usage_tips: "在客户表达痛点后，自然过渡到我方产品的解决方案介绍"
+          }
+        ]
+      };
+    }
+    
+    if (prompt.includes('共同利益') || prompt.includes('common')) {
+      return {
+        common_benefit_suggestions: [
+          {
+            description: "提升工作效率",
+            my_advantage: "我方产品在效率提升方面具有更显著的效果",
+            persuasion_points: "通过具体数据对比展示我方产品的效率优势",
+            talking_points: "虽然双方都能提升效率，但我方产品能够实现X%的效率提升，而竞争对手通常只能达到Y%"
+          }
+        ]
+      };
+    }
+    
+    if (prompt.includes('劣势') || prompt.includes('weakness')) {
+      return {
+        weakness_suggestions: [
+          {
+            description: "价格相对较高",
+            competitor_advantage: "竞争对手产品价格更具竞争力",
+            strategy: "强调总体拥有成本(TCO)和长期投资回报率(ROI)的优势",
+            alternative_focus: "将焦点转移到产品质量、服务支持和长期价值上",
+            response_framework: "承认价格差异，但强调'一分价钱一分货'的价值理念，并提供TCO分析"
+          }
+        ]
+      };
+    }
+    
+    // 默认返回通用建议
+    return {
+      message: "AI服务暂时不可用，请手动填写相关内容。建议重点关注产品的差异化优势和客户价值。",
+      suggestions: [
+        "分析产品的核心技术优势",
+        "识别目标客户的关键需求",
+        "准备具体的案例和数据支撑",
+        "制定针对性的销售策略"
+      ]
+    };
   }
 
   // 保留原有的一键生成方法（向后兼容）
