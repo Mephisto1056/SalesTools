@@ -42,6 +42,18 @@
     <section class="assessment-section">
       <div class="section-container">
         <div class="assessment-form">
+          <!-- 评分说明 -->
+          <div class="rating-instruction animate-fade-in-up">
+            <div class="instruction-content">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
+              </svg>
+              <span class="instruction-text">
+                <strong>评分说明：</strong>请根据您的实际情况进行评分，1分表示完全不符合或从未做到，5分表示完全符合或总是能够做到
+              </span>
+            </div>
+          </div>
           <!-- Trust 维度 -->
           <div class="dimension-card animate-fade-in-up">
             <div class="dimension-header">
@@ -1222,6 +1234,38 @@ const randomFillScores = () => {
 </script>
 
 <style scoped>
+/* ===== 评分说明样式 ===== */
+.rating-instruction {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.instruction-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.instruction-content svg {
+  color: var(--primary-500);
+  flex-shrink: 0;
+}
+
+.instruction-text {
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.instruction-text strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
 /* ===== Admin工具样式 ===== */
 .admin-tools {
   margin-bottom: 1.5rem;
