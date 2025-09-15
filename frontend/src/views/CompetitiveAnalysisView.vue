@@ -163,7 +163,7 @@
                         <div class="dimension-desc">{{ dimension.description }}</div>
                       </td>
                       <td>
-                        <textarea 
+                        <textarea
                           v-model="formData.comparison[dimension.key].myProduct"
                           class="input textarea-input"
                           :placeholder="dimension.placeholder.my"
@@ -171,7 +171,7 @@
                         ></textarea>
                       </td>
                       <td>
-                        <textarea 
+                        <textarea
                           v-model="formData.comparison[dimension.key].competitor"
                           class="input textarea-input"
                           :placeholder="dimension.placeholder.competitor"
@@ -709,7 +709,7 @@
         <div v-if="currentStep === 8" class="step-content">
           <div class="step-card">
             <div class="step-header">
-              <h2>步骤5: 总结与导出</h2>
+              <h2>步骤8: 总结与导出</h2>
               <p>查看完整的竞争分析备课材料</p>
             </div>
             
@@ -863,8 +863,19 @@ const formData = reactive({
   }>
 })
 
+// 定义对比维度的类型
+type ComparisonKey = 'features' | 'benefits' | 'price' | 'supply_terms' | 'service' | 'consulting'
+
 // 对比维度定义
-const comparisonDimensions = [
+const comparisonDimensions: Array<{
+  key: ComparisonKey;
+  label: string;
+  description: string;
+  placeholder: {
+    my: string;
+    competitor: string;
+  };
+}> = [
   {
     key: 'features',
     label: '特征',
@@ -1020,11 +1031,12 @@ const getAISuggestion = async (dimension: string) => {
       console.log('AI建议响应:', suggestion)
       
       // 更新对应维度的数据
-      if (suggestion.my_product && !formData.comparison[dimension as keyof typeof formData.comparison].myProduct) {
-        formData.comparison[dimension as keyof typeof formData.comparison].myProduct = suggestion.my_product
+      const comparisonKey = dimension as keyof typeof formData.comparison
+      if (suggestion.my_product && !formData.comparison[comparisonKey].myProduct) {
+        formData.comparison[comparisonKey].myProduct = suggestion.my_product
       }
-      if (suggestion.competitor_product && !formData.comparison[dimension as keyof typeof formData.comparison].competitor) {
-        formData.comparison[dimension as keyof typeof formData.comparison].competitor = suggestion.competitor_product
+      if (suggestion.competitor_product && !formData.comparison[comparisonKey].competitor) {
+        formData.comparison[comparisonKey].competitor = suggestion.competitor_product
       }
     } else {
       throw new Error(response.message || 'AI建议获取失败')
@@ -1340,6 +1352,7 @@ const startNewAnalysis = () => {
   formData.customerName = ''
   formData.myProduct = ''
   formData.competitorProduct = ''
+  formData.sessionId = '' // 重置会话ID
   
   // 重置对比数据
   Object.keys(formData.comparison).forEach(key => {
