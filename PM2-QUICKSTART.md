@@ -11,22 +11,13 @@
 ./fullstack-deploy.sh production prod
 ```
 
-### 2. 仅后端部署
+### 2. 查看应用状态
 ```bash
-./pm2-manager.sh deploy production
-```
-
-### 3. 查看应用状态
-```bash
-./pm2-manager.sh status
-# 或
 pm2 status
 ```
 
-### 4. 查看实时日志
+### 3. 查看实时日志
 ```bash
-./pm2-manager.sh logs
-# 或
 pm2 logs
 ```
 
@@ -58,17 +49,11 @@ nano backend/.env
 
 ### 步骤 3: 执行部署
 ```bash
-# 方式一：全栈部署 (推荐)
+# 全栈部署 (推荐)
 ./fullstack-deploy.sh production prod
 
-# 方式二：使用管理脚本
-./pm2-manager.sh deploy production
-
-# 方式三：使用简单部署脚本
-./deploy.sh production
-
-# 方式四：手动部署
-pm2 start ecosystem.production.config.js --env production
+# 或手动部署
+pm2 start ecosystem.full.config.js --env production
 ```
 
 ### 步骤 4: 验证部署

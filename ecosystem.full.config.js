@@ -60,8 +60,8 @@ module.exports = {
     // 前端构建服务器 (生产环境用serve)
     {
       name: 'sales-frontend-prod',
-      script: 'npx',
-      args: 'serve -s dist -l 5173',
+      script: './node_modules/.bin/serve',
+      args: '-s dist -l 5173',
       cwd: './frontend',
       instances: 2,
       exec_mode: 'cluster',

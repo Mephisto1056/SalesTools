@@ -47,12 +47,6 @@ if [ "$FRONTEND_MODE" = "prod" ] || [ "$ENVIRONMENT" = "production" ]; then
     cd frontend
     npm install
     npm run build
-    
-    # 安装 serve (如果没有)
-    if ! command -v serve &> /dev/null; then
-        echo -e "${YELLOW}📦 安装 serve...${NC}"
-        npm install -g serve
-    fi
     cd ..
 else
     echo -e "${YELLOW}📦 安装前端依赖...${NC}"

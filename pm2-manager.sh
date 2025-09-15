@@ -27,21 +27,8 @@ ENVIRONMENT=${2:-production}
 
 # 获取配置文件
 get_config_file() {
-    if [[ "$USE_LEGACY_MODE" == "true" ]]; then
-        case $ENVIRONMENT in
-            development) echo "ecosystem.config.js" ;;
-            production) echo "ecosystem.production.config.js" ;;
-            staging) echo "ecosystem.config.js" ;;
-            *) echo "ecosystem.config.js" ;;
-        esac
-    else
-        # 配置文件映射
-        declare -A CONFIG_FILES
-        CONFIG_FILES[development]="ecosystem.config.js"
-        CONFIG_FILES[production]="ecosystem.production.config.js"
-        CONFIG_FILES[staging]="ecosystem.config.js"
-        echo ${CONFIG_FILES[$ENVIRONMENT]}
-    fi
+    # 统一使用全栈配置文件
+    echo "ecosystem.full.config.js"
 }
 
 # 显示帮助信息
