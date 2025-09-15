@@ -97,20 +97,48 @@ echo -e "  监控面板: ${YELLOW}pm2 monit${NC}"
 
 # 健康检查
 echo -e "${BLUE}🏥 执行健康检查...${NC}"
-sleep 3
+echo -e "${YELLOW}等待服务完全启动...${NC}"
+sleep 10
 
 # 检查后端
-if curl -s http://localhost:3000/health > /dev/null; then
-    echo -e "${GREEN}✅ 后端服务正常${NC}"
-else
-    echo -e "${RED}❌ 后端服务异常${NC}"
-fi
+echo -e "${BLUE}检查后端服务...${NC}"
+for i in {1..5}; do
+    if curl -s http://localhost:3000/health > /dev/null; then
+        echo -e "${GREEN}✅ 后端服务正常${NC}"
+        break
+    else
+        if [ $i -eq 5 ]; then
+            echo -e "${RED}❌ 后端服务异常${NC}"
+        else
+            echo -e "${YELLOW}⏳ 等待后端服务启动... (尝试 $i/5)${NC}"
+            sleep 2
+        fi
+    fi
+done
 
 # 检查前端
-if curl -s http://localhost:5173 > /dev/null; then
-    echo -e "${GREEN}✅ 前端服务正常${NC}"
+echo -e "${BLUE}检查前端服务...${NC}"
+for i in {1..5}; do
+    if curl -s -I http://localhost:5173 | grep -q "200 OK"; then
+        echo -e "${GREEN}✅ 前端服务正常${NC}"
+        break
+    else
+        if [ $i -eq 5 ]; then
+            echo -e "${RED}❌ 前端服务异常${NC}"
+            echo -e "${YELLOW}💡 提示: 前端可能需要更长时间启动，请稍后手动检查${NC}"
+        else
+            echo -e "${YELLOW}⏳ 等待前端服务启动... (尝试 $i/5)${NC}"
+            sleep 3
+        fi
+    fi
+done
+
+# 显示双API Key状态
+echo -e "${BLUE}🔑 检查双API Key状态...${NC}"
+if curl -s http://localhost:3000/api/status/status | grep -q "healthy"; then
+    echo -e "${GREEN}✅ 双API Key功能正常${NC}"
 else
-    echo -e "${RED}❌ 前端服务异常${NC}"
+    echo -e "${YELLOW}⚠️ 双API Key状态检查失败，请手动验证${NC}"
 fi
 
 echo -e "${GREEN}🎉 全栈部署完成！${NC}"

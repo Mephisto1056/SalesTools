@@ -11,13 +11,17 @@ module.exports = {
         NODE_ENV: 'development',
         PORT: 3000,
         FRONTEND_URL: 'http://localhost:5173',
-        JWT_SECRET: 'your-dev-jwt-secret'
+        JWT_SECRET: 'your-dev-jwt-secret',
+        // 双KIMI API Key配置
+        KIMI_API_URL: 'https://api.moonshot.cn/v1/chat/completions'
       },
       env_production: {
         NODE_ENV: 'production',
         PORT: 3000,
         FRONTEND_URL: 'https://your-domain.com',
-        JWT_SECRET: 'your-production-jwt-secret'
+        JWT_SECRET: 'your-production-jwt-secret',
+        // 双KIMI API Key配置
+        KIMI_API_URL: 'https://api.moonshot.cn/v1/chat/completions'
       },
       log_file: './logs/backend-combined.log',
       out_file: './logs/backend-out.log',
