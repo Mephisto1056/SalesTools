@@ -116,6 +116,7 @@ git pull origin main
    - PM2 已全局安装
    - 前端已添加 terser 和 serve 依赖
    - 后端已添加 tsc-alias 依赖
+   - 使用 npx 运行 serve，避免全局安装权限问题
 
 2. **端口占用**:
    - 确保 3000 和 5173 端口未被占用
@@ -124,6 +125,7 @@ git pull origin main
 3. **权限问题**:
    - 避免使用 sudo 运行 PM2
    - 使用专用用户部署应用
+   - 前端静态服务使用 npx serve，无需全局权限
 
 4. **日志管理**:
    - 定期清理日志文件
