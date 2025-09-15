@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { kimiAPIManager } from './kimiAPIManager';
 import {
   buildFailureAnalysisPrompt,
   generateMockFailureAnalysis
@@ -47,62 +47,29 @@ export interface FailureAnalysisResult {
 // 获取AI API配置
 const getAIAPIConfig = () => ({
   KIMI_API_URL: process.env.KIMI_API_URL || 'https://api.moonshot.cn/v1/chat/completions',
-  KIMI_API_KEY: process.env.KIMI_API_KEY || '',
+  KIMI_API_KEY_1: process.env.KIMI_API_KEY_1 || process.env.KIMI_API_KEY || '',
+  KIMI_API_KEY_2: process.env.KIMI_API_KEY_2 || '',
 });
 
-// 调用KIMI API进行分析
+// 调用KIMI API进行分析 - 使用双Key管理器
 const callKimiAPI = async (prompt: string): Promise<string> => {
-  const config = getAIAPIConfig();
+  console.log('🤖 失败分析 - 开始调用KIMI API (双Key模式)...');
   
-  console.log('失败分析 - KIMI API配置检查:');
-  console.log('- API URL:', config.KIMI_API_URL);
-  console.log('- API Key存在:', !!config.KIMI_API_KEY);
-
-  if (!config.KIMI_API_KEY) {
-    throw new Error('KIMI API密钥未配置');
-  }
-
   try {
-    console.log('开始调用KIMI API进行失败分析...');
-    
-    const requestBody = {
-      model: 'kimi-k2-0711-preview',
-      messages: [
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
+    // 使用双Key管理器调用API
+    const content = await kimiAPIManager.callKimiAPI(prompt, {
+      model: 'moonshot-v1-8k',
       temperature: 0.3,
-      max_tokens: 8000
-    };
+      max_tokens: 8000,
+      timeout: 180000
+    });
 
-    const response = await axios.post(
-      config.KIMI_API_URL,
-      requestBody,
-      {
-        headers: {
-          'Authorization': `Bearer ${config.KIMI_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        timeout: 180000 // 180秒超时
-      }
-    );
-
-    console.log('KIMI API响应状态:', response.status);
-    
-    const content = (response.data as any).choices[0].message.content;
+    console.log('✅ 失败分析 - KIMI API调用成功');
     return content;
 
   } catch (error: any) {
-    console.error('KIMI API调用错误:', error);
-    if (error.response) {
-      throw new Error(`KIMI API错误: ${error.response.data?.error?.message || error.response.statusText}`);
-    } else if (error.request) {
-      throw new Error('网络连接错误，无法访问KIMI API');
-    } else {
-      throw new Error(`KIMI API调用失败: ${error.message}`);
-    }
+    console.error('❌ 失败分析 - KIMI API调用错误:', error.message);
+    throw error;
   }
 };
 
@@ -148,7 +115,7 @@ class FailureAnalysisService {
     let analysisResult: FailureAnalysisResult;
     
     // 尝试调用KIMI API
-    if (config.KIMI_API_KEY) {
+    if (config.KIMI_API_KEY_1 || config.KIMI_API_KEY_2) {
       try {
         console.log('使用KIMI API进行失败分析...');
         const aiResponse = await callKimiAPI(prompt);
@@ -184,7 +151,7 @@ class FailureAnalysisService {
     let prediction: string;
     
     // 尝试调用KIMI API
-    if (config.KIMI_API_KEY) {
+    if (config.KIMI_API_KEY_1 || config.KIMI_API_KEY_2) {
       try {
         console.log('使用KIMI API进行字段预测...');
         const aiResponse = await callKimiAPI(prompt);

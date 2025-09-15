@@ -1,9 +1,12 @@
+// 首先加载环境变量
+import dotenv from 'dotenv'
+dotenv.config()
+
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
 import morgan from 'morgan'
 import compression from 'compression'
-import dotenv from 'dotenv'
 
 import { errorHandler } from '@/middlewares/errorHandler'
 import { notFoundHandler } from '@/middlewares/notFoundHandler'
@@ -15,9 +18,7 @@ import competitiveAnalysisRoutes from '@/routes/competitiveAnalysis'
 import selfTestRoutes from '@/routes/selfTest'
 import failureAnalysisRoutes from '@/routes/failureAnalysis'
 import adminRoutes from '@/routes/admin'
-
-// 加载环境变量
-dotenv.config()
+import apiStatusRoutes from '@/routes/apiStatus'
 
 const app = express()
 const PORT = process.env.PORT || 3000
@@ -72,6 +73,7 @@ app.use('/api/competitive-analysis', competitiveAnalysisRoutes)
 app.use('/api/self-test', selfTestRoutes)
 app.use('/api/failure-analysis', failureAnalysisRoutes)
 app.use('/api/admin', adminRoutes)
+app.use('/api/status', apiStatusRoutes)
 
 // 404 处理
 app.use(notFoundHandler)

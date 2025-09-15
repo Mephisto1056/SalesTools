@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { kimiAPIManager } from './kimiAPIManager';
 import {
   buildCustomPrompt,
   PromptConfig,
@@ -64,9 +65,10 @@ export interface CompetitiveAnalysisResult {
 
 // 获取大模型API配置（动态获取环境变量）
 const getAIAPIConfig = () => ({
-  // KIMI API配置
+  // KIMI API配置 - 现在由kimiAPIManager管理
   KIMI_API_URL: process.env.KIMI_API_URL || 'https://api.moonshot.cn/v1/chat/completions',
-  KIMI_API_KEY: process.env.KIMI_API_KEY || '',
+  KIMI_API_KEY_1: process.env.KIMI_API_KEY_1 || process.env.KIMI_API_KEY || '',
+  KIMI_API_KEY_2: process.env.KIMI_API_KEY_2 || '',
   
   // 备用API配置 - 可以添加其他大模型
   OPENAI_API_URL: process.env.OPENAI_API_URL || 'https://api.openai.com/v1/chat/completions',
@@ -84,61 +86,22 @@ const getPromptConfig = (): PromptConfig => ({
   customInstructions: '请确保分析结果具有实用性和可操作性，避免过于理论化的建议。'
 });
 
-// 调用KIMI API
+// 调用KIMI API - 使用双Key管理器
 const callKimiAPI = async (prompt: string): Promise<any> => {
-  const config = getAIAPIConfig();
+  console.log('🤖 开始调用KIMI API (双Key模式)...');
+  console.log('📝 提示词长度:', prompt.length);
   
-  console.log('KIMI API配置检查:');
-  console.log('- API URL:', config.KIMI_API_URL);
-  console.log('- API Key存在:', !!config.KIMI_API_KEY);
-  console.log('- API Key前缀:', config.KIMI_API_KEY?.substring(0, 10) + '...');
-
-  if (!config.KIMI_API_KEY) {
-    throw new Error('KIMI API密钥未配置');
-  }
-
   try {
-    console.log('开始调用KIMI API...');
-    console.log('提示词长度:', prompt.length);
-    
-    // 构建请求体
-    let requestBody: any = {
-      model: 'moonshot-v1-8k',  // 使用更稳定的模型
-      messages: [
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
+    // 使用双Key管理器调用API
+    const content = await kimiAPIManager.callKimiAPI(prompt, {
+      model: 'moonshot-v1-8k',
       temperature: 0.3,
       max_tokens: 4000,
-      stream: false
-    };
+      timeout: 120000
+    });
 
-    console.log('发送请求到KIMI API...');
-    
-    const response = await axios.post(
-      config.KIMI_API_URL,
-      requestBody,
-      {
-        headers: {
-          'Authorization': `Bearer ${config.KIMI_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        timeout: 120000 // 120秒超时
-      }
-    );
-
-    console.log('KIMI API响应状态:', response.status);
-    
-    const responseData = response.data as any;
-    if (!responseData || !responseData.choices || !responseData.choices[0]) {
-      throw new Error('KIMI API响应格式异常');
-    }
-
-    const content = responseData.choices[0].message.content;
-    console.log('KIMI API响应内容长度:', content.length);
-    console.log('KIMI API响应内容预览:', content.substring(0, 200) + '...');
+    console.log('📄 KIMI API响应内容长度:', content.length);
+    console.log('👀 KIMI API响应内容预览:', content.substring(0, 200) + '...');
     
     // 尝试解析JSON响应
     try {
@@ -156,34 +119,18 @@ const callKimiAPI = async (prompt: string): Promise<any> => {
         }
       }
       
-      console.log('JSON解析成功，数据结构:', Object.keys(jsonData));
+      console.log('✅ JSON解析成功，数据结构:', Object.keys(jsonData));
       return jsonData;
       
     } catch (parseError: any) {
-      console.error('JSON解析错误:', parseError);
-      console.error('原始响应内容:', content);
+      console.error('❌ JSON解析错误:', parseError);
+      console.error('📄 原始响应内容:', content);
       throw new Error(`AI响应格式错误，无法解析JSON: ${parseError?.message || '未知解析错误'}`);
     }
 
   } catch (error: any) {
-    console.error('KIMI API调用错误详情:', {
-      message: error.message,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data
-    });
-    
-    if (error.response) {
-      const errorMsg = error.response.data?.error?.message ||
-                      error.response.data?.message ||
-                      error.response.statusText ||
-                      '未知API错误';
-      throw new Error(`KIMI API错误 (${error.response.status}): ${errorMsg}`);
-    } else if (error.request) {
-      throw new Error('网络连接错误，无法访问KIMI API');
-    } else {
-      throw new Error(`KIMI API调用失败: ${error.message}`);
-    }
+    console.error('❌ KIMI API调用错误:', error.message);
+    throw error;
   }
 };
 
@@ -576,7 +523,7 @@ class CompetitiveAnalysisService {
     
     // 尝试调用不同的AI API，按优先级顺序
     const apiMethods = [
-      { name: 'KIMI', method: callKimiAPI, enabled: !!config.KIMI_API_KEY },
+      { name: 'KIMI', method: callKimiAPI, enabled: !!(config.KIMI_API_KEY_1 || config.KIMI_API_KEY_2) },
       { name: 'OpenAI', method: callOpenAIAPI, enabled: !!config.OPENAI_API_KEY }
     ];
 
@@ -691,13 +638,17 @@ class CompetitiveAnalysisService {
     
     // 调试环境变量
     console.log('环境变量调试:');
-    console.log('- process.env.KIMI_API_KEY:', process.env.KIMI_API_KEY ? 'exists' : 'not found');
-    console.log('- config.KIMI_API_KEY:', config.KIMI_API_KEY ? 'exists' : 'not found');
-    console.log('- KIMI_API_KEY length:', config.KIMI_API_KEY?.length || 0);
+    console.log('- KIMI_API_KEY_1:', config.KIMI_API_KEY_1 ? 'exists' : 'not found');
+    console.log('- KIMI_API_KEY_2:', config.KIMI_API_KEY_2 ? 'exists' : 'not found');
+    console.log('- KIMI Keys总数:', [config.KIMI_API_KEY_1, config.KIMI_API_KEY_2].filter(k => k).length);
+    
+    // 显示双Key管理器状态
+    const managerStatus = kimiAPIManager.getStatus();
+    console.log('🔑 KIMI API Manager状态:', managerStatus);
     
     // 尝试调用不同的AI API，按优先级顺序
     const apiMethods = [
-      { name: 'KIMI', method: callKimiAPI, enabled: !!config.KIMI_API_KEY },
+      { name: 'KIMI', method: callKimiAPI, enabled: !!(config.KIMI_API_KEY_1 || config.KIMI_API_KEY_2) },
       { name: 'OpenAI', method: callOpenAIAPI, enabled: !!config.OPENAI_API_KEY }
     ];
     
