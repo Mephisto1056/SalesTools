@@ -214,12 +214,10 @@ export class KimiAPIManager {
       temperature: options.temperature || 0.3,
       max_tokens: options.max_tokens || 4000,
       stream: false,
+      // KIMI API的联网搜索配置
       tools: [
         {
-          type: "web_search",
-          web_search: {
-            enable: true
-          }
+          type: "web_search"
         }
       ],
       ...options
@@ -337,12 +335,10 @@ export class KimiAPIManager {
       temperature: options.temperature || 0.3,
       max_tokens: options.max_tokens || 4000,
       stream: false,
+      // KIMI API的联网搜索配置
       tools: [
         {
-          type: "web_search",
-          web_search: {
-            enable: true
-          }
+          type: "web_search"
         }
       ],
       ...options
