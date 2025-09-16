@@ -453,20 +453,42 @@ class CompetitiveAnalysisService {
 
   // AI辅助：单个维度建议
   async getDimensionSuggestion(sessionId: string, dimension: string): Promise<any> {
+    console.log(`获取维度建议 - 会话ID: ${sessionId}, 维度: ${dimension}`);
+    
     const session = sessions.get(sessionId);
     if (!session) {
-      throw new Error('会话不存在');
+      console.error(`会话不存在: ${sessionId}`);
+      console.log('当前存在的会话:', Array.from(sessions.keys()));
+      throw new Error(`会话不存在: ${sessionId}`);
     }
 
-    const prompt = buildDimensionSuggestionPrompt(
-      dimension,
-      session.my_product,
-      session.competitor_product,
-      session.customer_name
-    );
+    console.log(`会话信息:`, {
+      customer_name: session.customer_name,
+      my_product: session.my_product,
+      competitor_product: session.competitor_product
+    });
 
-    const result = await this.callAI(prompt);
-    return result;
+    try {
+      const prompt = buildDimensionSuggestionPrompt(
+        dimension,
+        session.my_product,
+        session.competitor_product,
+        session.customer_name
+      );
+
+      console.log(`构建的提示词长度: ${prompt.length}`);
+      
+      const result = await this.callAI(prompt);
+      console.log(`AI建议结果:`, result);
+      
+      return result;
+    } catch (error: any) {
+      console.error(`AI调用失败:`, error);
+      
+      // 如果AI调用失败，返回降级响应
+      console.log('返回降级响应');
+      return this.generateFallbackResponse(`维度建议 ${dimension}`);
+    }
   }
 
   // AI辅助：独有利益建议

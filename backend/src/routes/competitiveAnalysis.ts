@@ -318,10 +318,23 @@ router.post('/ai-assist/dimension', async (req: Request, res: Response): Promise
   try {
     const { session_id, dimension } = req.body;
 
+    console.log('AI维度建议请求:', { session_id, dimension });
+
     if (!session_id || !dimension) {
       res.status(400).json({
         code: 400,
         message: '请提供会话ID和维度信息',
+        data: null
+      });
+      return;
+    }
+
+    // 验证维度参数是否有效
+    const validDimensions = ['features', 'benefits', 'price', 'supply_terms', 'service', 'consulting'];
+    if (!validDimensions.includes(dimension)) {
+      res.status(400).json({
+        code: 400,
+        message: `无效的维度参数: ${dimension}，有效值为: ${validDimensions.join(', ')}`,
         data: null
       });
       return;
@@ -337,6 +350,7 @@ router.post('/ai-assist/dimension', async (req: Request, res: Response): Promise
 
   } catch (error: any) {
     console.error('Dimension suggestion error:', error);
+    console.error('Error stack:', error.stack);
     
     res.status(500).json({
       code: 500,
