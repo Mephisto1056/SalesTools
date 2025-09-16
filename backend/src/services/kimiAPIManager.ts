@@ -20,8 +20,8 @@ interface APIKeyConfig {
 export class KimiAPIManager {
   private apiKeys: APIKeyConfig[];
   private apiUrl: string;
-  private maxRPM: number = 200;
-  private maxTPM: number = 5000;
+  private maxRPM: number = 4000;   // 设置为API限制的80%，保留缓冲
+  private maxTPM: number = 300000; // 设置为API限制的约80%，保留缓冲
   private maxErrors: number = 5;
 
   constructor() {
@@ -214,6 +214,14 @@ export class KimiAPIManager {
       temperature: options.temperature || 0.3,
       max_tokens: options.max_tokens || 4000,
       stream: false,
+      tools: [
+        {
+          type: "web_search",
+          web_search: {
+            enable: true
+          }
+        }
+      ],
       ...options
     };
 
@@ -251,6 +259,17 @@ export class KimiAPIManager {
         data: error.response?.data
       });
 
+      // 检查是否是限制相关错误
+      const isRateLimitError = error.response?.status === 429 ||
+                              (error.response?.data?.error?.message &&
+                               error.response.data.error.message.toLowerCase().includes('rate limit'));
+
+      if (isRateLimitError) {
+        console.warn(`⚠️ API限制错误，暂时禁用Key: ${selectedKey.key.substring(0, 10)}...`);
+        selectedKey.isActive = false;
+        selectedKey.usage.errorCount = this.maxErrors; // 立即禁用
+      }
+
       // 如果有其他可用Key，尝试重试
       if (this.apiKeys.filter(k => k.isActive && k !== selectedKey).length > 0) {
         console.log(`🔄 尝试使用备用API Key重试...`);
@@ -263,6 +282,11 @@ export class KimiAPIManager {
                         error.response.data?.message ||
                         error.response.statusText ||
                         '未知API错误';
+        
+        if (isRateLimitError) {
+          throw new Error(`API调用频率限制，请稍后重试: ${errorMsg}`);
+        }
+        
         throw new Error(`KIMI API错误 (${error.response.status}): ${errorMsg}`);
       } else if (error.request) {
         throw new Error('网络连接错误，无法访问KIMI API');
@@ -313,6 +337,14 @@ export class KimiAPIManager {
       temperature: options.temperature || 0.3,
       max_tokens: options.max_tokens || 4000,
       stream: false,
+      tools: [
+        {
+          type: "web_search",
+          web_search: {
+            enable: true
+          }
+        }
+      ],
       ...options
     };
 
