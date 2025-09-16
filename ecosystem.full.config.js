@@ -18,10 +18,12 @@ module.exports = {
       env_production: {
         NODE_ENV: 'production',
         PORT: 3000,
-        FRONTEND_URL: 'https://your-domain.com',
-        JWT_SECRET: 'your-production-jwt-secret',
+        FRONTEND_URL: 'http://101.132.237.40:5173,http://localhost:5173,http://127.0.0.1:5173',
+        JWT_SECRET: 'your-super-secret-jwt-key-change-this-in-production',
         // 双KIMI API Key配置
-        KIMI_API_URL: 'https://api.moonshot.cn/v1/chat/completions'
+        KIMI_API_URL: 'https://api.moonshot.cn/v1/chat/completions',
+        KIMI_API_KEY_1: 'sk-kb3yM6i50AHduhfQjScwAAwGxKRBn3g1OvVbdjtA2LNAgBRx',
+        KIMI_API_KEY_2: 'sk-99aGzOsTsc0HGQeQhTmEk3rcy4yEOSVGLPEo2yJHCRhrBVSI'
       },
       log_file: './logs/backend-combined.log',
       out_file: './logs/backend-out.log',
