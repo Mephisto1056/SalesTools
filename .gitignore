@@ -119,3 +119,11 @@ venv.bak/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Data storage files (persistent data)
+data/
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!*config*.json

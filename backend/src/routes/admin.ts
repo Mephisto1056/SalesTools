@@ -2,12 +2,48 @@ import { Router, Request, Response } from 'express'
 import { v4 as uuidv4 } from 'uuid'
 import { asyncHandler, AppError } from '@/middlewares/errorHandler'
 import { authMiddleware } from '@/middlewares/auth'
+import fs from 'fs'
+import path from 'path'
 
 const router = Router()
 
-// 模拟数据存储 (实际项目中应该使用数据库)
-const assessmentLinks: any[] = []
-const assessmentResults: any[] = []
+// 数据文件路径
+const DATA_DIR = path.join(process.cwd(), 'data')
+const LINKS_FILE = path.join(DATA_DIR, 'assessment-links.json')
+const RESULTS_FILE = path.join(DATA_DIR, 'assessment-results.json')
+
+// 确保数据目录存在
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true })
+}
+
+// 从文件加载数据
+const loadData = (filePath: string, defaultValue: any[] = []) => {
+  try {
+    if (fs.existsSync(filePath)) {
+      const data = fs.readFileSync(filePath, 'utf8')
+      return JSON.parse(data)
+    }
+  } catch (error) {
+    console.error(`加载数据文件失败: ${filePath}`, error)
+  }
+  return defaultValue
+}
+
+// 保存数据到文件
+const saveData = (filePath: string, data: any[]) => {
+  try {
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8')
+  } catch (error) {
+    console.error(`保存数据文件失败: ${filePath}`, error)
+  }
+}
+
+// 持久化数据存储
+let assessmentLinks: any[] = loadData(LINKS_FILE)
+let assessmentResults: any[] = loadData(RESULTS_FILE)
+
+console.log(`已加载 ${assessmentLinks.length} 个评估链接和 ${assessmentResults.length} 条评估结果`)
 
 // 管理员权限检查中间件
 const adminMiddleware = (req: any, _res: Response, next: any) => {
@@ -26,7 +62,18 @@ router.post('/assessment-links', authMiddleware, adminMiddleware, asyncHandler(a
   }
 
   const linkId = uuidv4()
-  const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173'
+  
+  // 处理多个前端URL，优先使用服务器地址
+  const frontendUrls = process.env.FRONTEND_URL || 'http://localhost:5173'
+  const urlList = frontendUrls.split(',').map(url => url.trim())
+  
+  // 优先选择服务器地址（包含IP地址的URL）
+  const serverUrl = urlList.find(url =>
+    url.includes('101.132.237.40') ||
+    url.match(/\d+\.\d+\.\d+\.\d+/) // 匹配任何IP地址格式
+  )
+  
+  const baseUrl = serverUrl || urlList[0] // 如果没有找到服务器地址，使用第一个URL
   const assessmentUrl = `${baseUrl}/self-test?linkId=${linkId}`
 
   const newLink = {
@@ -41,6 +88,7 @@ router.post('/assessment-links', authMiddleware, adminMiddleware, asyncHandler(a
   }
 
   assessmentLinks.push(newLink)
+  saveData(LINKS_FILE, assessmentLinks) // 保存到文件
 
   res.status(200).json({
     code: 200,
@@ -168,6 +216,7 @@ router.put('/assessment-links/:id/deactivate', authMiddleware, adminMiddleware, 
   }
 
   link.isActive = false
+  saveData(LINKS_FILE, assessmentLinks) // 保存到文件
 
   res.status(200).json({
     code: 200,
@@ -190,6 +239,7 @@ router.post('/assessment-results', asyncHandler(async (req: Request, res: Respon
     const link = assessmentLinks.find(l => l.id === linkId)
     if (link) {
       link.visits = (link.visits || 0) + 1
+      saveData(LINKS_FILE, assessmentLinks) // 保存访问统计
     }
   }
 
@@ -206,6 +256,7 @@ router.post('/assessment-results', asyncHandler(async (req: Request, res: Respon
   }
 
   assessmentResults.push(result)
+  saveData(RESULTS_FILE, assessmentResults) // 保存到文件
 
   res.status(200).json({
     code: 200,
