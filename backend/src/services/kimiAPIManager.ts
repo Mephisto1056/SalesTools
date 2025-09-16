@@ -204,7 +204,7 @@ export class KimiAPIManager {
 
     // 构建请求体
     const requestBody = {
-      model: options.model || 'moonshot-v1-8k',
+      model: options.model || 'moonshot-v1-128k',
       messages: [
         {
           role: 'user',
@@ -303,7 +303,7 @@ export class KimiAPIManager {
 
     // 构建请求体
     const requestBody = {
-      model: options.model || 'moonshot-v1-8k',
+      model: options.model || 'moonshot-v1-128k',
       messages: [
         {
           role: 'user',

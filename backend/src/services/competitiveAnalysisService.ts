@@ -94,7 +94,7 @@ const callKimiAPI = async (prompt: string): Promise<any> => {
   try {
     // 使用双Key管理器调用API
     const content = await kimiAPIManager.callKimiAPI(prompt, {
-      model: 'moonshot-v1-8k',
+      model: 'moonshot-v1-128k',
       temperature: 0.3,
       max_tokens: 4000,
       timeout: 120000

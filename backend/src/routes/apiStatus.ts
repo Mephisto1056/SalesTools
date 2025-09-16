@@ -43,7 +43,7 @@ router.post('/test', async (req: Request, res: Response): Promise<void> => {
     
     const startTime = Date.now();
     const response = await kimiAPIManager.callKimiAPI(prompt, {
-      model: 'moonshot-v1-8k',
+      model: 'moonshot-v1-128k',
       temperature: 0.3,
       max_tokens: 200,
       timeout: 30000
