@@ -17,6 +17,15 @@ if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true })
 }
 
+// 确保数据文件存在
+if (!fs.existsSync(LINKS_FILE)) {
+  fs.writeFileSync(LINKS_FILE, '[]', 'utf8')
+}
+
+if (!fs.existsSync(RESULTS_FILE)) {
+  fs.writeFileSync(RESULTS_FILE, '[]', 'utf8')
+}
+
 // 从文件加载数据
 const loadData = (filePath: string, defaultValue: any[] = []) => {
   try {
@@ -34,8 +43,10 @@ const loadData = (filePath: string, defaultValue: any[] = []) => {
 const saveData = (filePath: string, data: any[]) => {
   try {
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8')
+    console.log(`数据已保存到: ${filePath}, 记录数: ${data.length}`)
   } catch (error) {
     console.error(`保存数据文件失败: ${filePath}`, error)
+    throw error
   }
 }
 
@@ -43,7 +54,11 @@ const saveData = (filePath: string, data: any[]) => {
 let assessmentLinks: any[] = loadData(LINKS_FILE)
 let assessmentResults: any[] = loadData(RESULTS_FILE)
 
-console.log(`已加载 ${assessmentLinks.length} 个评估链接和 ${assessmentResults.length} 条评估结果`)
+console.log(`📊 数据加载完成:`)
+console.log(`  - 评估链接: ${assessmentLinks.length} 个`)
+console.log(`  - 评估结果: ${assessmentResults.length} 条`)
+console.log(`  - 链接文件: ${LINKS_FILE}`)
+console.log(`  - 结果文件: ${RESULTS_FILE}`)
 
 // 管理员权限检查中间件
 const adminMiddleware = (req: any, _res: Response, next: any) => {
@@ -293,6 +308,36 @@ router.get('/export/assessments', authMiddleware, adminMiddleware, asyncHandler(
   res.setHeader('Content-Type', 'text/csv; charset=utf-8')
   res.setHeader('Content-Disposition', 'attachment; filename=assessment-results.csv')
   res.status(200).send('\uFEFF' + csvContent) // 添加BOM以支持中文
+}))
+
+// 记录链接访问 (供前端调用)
+router.post('/link-visit', asyncHandler(async (req: Request, res: Response) => {
+  const { linkId } = req.body
+
+  if (!linkId) {
+    return res.status(200).json({
+      code: 200,
+      message: '无链接ID，跳过访问记录'
+    })
+  }
+
+  // 查找并更新链接访问次数
+  const link = assessmentLinks.find(l => l.id === linkId)
+  if (link) {
+    link.visits = (link.visits || 0) + 1
+    saveData(LINKS_FILE, assessmentLinks) // 保存访问统计
+    
+    console.log(`链接 ${link.name} 访问次数更新为: ${link.visits}`)
+  }
+
+  return res.status(200).json({
+    code: 200,
+    message: '访问记录成功',
+    data: {
+      linkId,
+      visits: link ? link.visits : 0
+    }
+  })
 }))
 
 export default router

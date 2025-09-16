@@ -242,6 +242,7 @@
                 <div class="link-stats">
                   <span>创建时间：{{ formatDate(currentQRCode.createdAt) }}</span>
                   <span>访问次数：{{ currentQRCode.visits || 0 }}</span>
+                  <span class="real-time-indicator">🔄 实时更新</span>
                 </div>
               </div>
             </div>
@@ -256,6 +257,16 @@
         <div class="section-header">
           <h2 class="section-title">评估结果分析</h2>
           <div class="section-actions">
+            <div class="analysis-filter">
+              <label for="analysisFilter">按链接筛选：</label>
+              <select id="analysisFilter" v-model="selectedAnalysisFilter" class="form-select">
+                <option value="">显示全部数据</option>
+                <option value="direct">仅显示直接访问</option>
+                <option v-for="link in assessmentLinks" :key="link.id" :value="link.id">
+                  {{ link.name }}
+                </option>
+              </select>
+            </div>
             <button class="btn btn-secondary" @click="refreshStats">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
@@ -277,13 +288,13 @@
             </div>
             <div class="chart-content">
               <div class="dimension-chart">
-                <div v-for="dimension in dimensionStats" :key="dimension.name" class="dimension-bar">
+                <div v-for="dimension in filteredDimensionStats" :key="dimension.name" class="dimension-bar">
                   <div class="dimension-info">
                     <span class="dimension-name">{{ dimension.name }}</span>
                     <span class="dimension-score">{{ dimension.average }}/50</span>
                   </div>
                   <div class="progress-bar">
-                    <div 
+                    <div
                       class="progress-fill"
                       :class="dimension.class"
                       :style="{ width: (dimension.average / 50 * 100) + '%' }"
@@ -302,18 +313,18 @@
             </div>
             <div class="chart-content">
               <div class="score-distribution">
-                <div v-for="range in scoreDistribution" :key="range.label" class="score-range">
+                <div v-for="range in filteredScoreDistribution" :key="range.label" class="score-range">
                   <div class="range-info">
                     <span class="range-label">{{ range.label }}</span>
                     <span class="range-count">{{ range.count }}人</span>
                   </div>
                   <div class="range-bar">
-                    <div 
+                    <div
                       class="range-fill"
-                      :style="{ width: (range.count / Math.max(stats.completedAssessments, 1) * 100) + '%' }"
+                      :style="{ width: (range.count / Math.max(filteredAnalysisData.filter(r => r.totalScore > 0).length, 1) * 100) + '%' }"
                     ></div>
                   </div>
-                  <div class="range-percentage">{{ Math.round(range.count / Math.max(stats.completedAssessments, 1) * 100) }}%</div>
+                  <div class="range-percentage">{{ Math.round(range.count / Math.max(filteredAnalysisData.filter(r => r.totalScore > 0).length, 1) * 100) }}%</div>
                 </div>
               </div>
             </div>
@@ -365,42 +376,23 @@
             <p>查看和筛选匿名评估结果</p>
           </div>
           
-          <!-- 筛选控件 -->
-          <div class="filter-controls">
-            <div class="filter-group">
-              <label for="linkFilter">按来源筛选：</label>
-              <select id="linkFilter" v-model="selectedLinkFilter" class="form-select">
-                <option value="">显示全部评估记录</option>
-                <option value="direct">仅显示直接访问</option>
-                <option v-for="link in assessmentLinks" :key="link.id" :value="link.id">
-                  {{ link.name }}
-                </option>
-              </select>
-            </div>
-            <div class="filter-stats">
-              <span>显示 {{ filteredAssessments.length }} 条记录</span>
-            </div>
+          <!-- 记录统计 -->
+          <div class="filter-stats">
+            <span>共 {{ recentAssessments.length }} 条评估记录</span>
           </div>
           
           <div class="assessments-table">
             <div class="table-header">
               <div class="table-cell">评估时间</div>
-              <div class="table-cell">来源链接</div>
               <div class="table-cell">总分</div>
               <div class="table-cell">Trust</div>
               <div class="table-cell">Connect</div>
               <div class="table-cell">Enable</div>
               <div class="table-cell">Develop</div>
-              <div class="table-cell">等级</div>
             </div>
             
-            <div v-for="assessment in filteredAssessments" :key="assessment.id" class="table-row">
+            <div v-for="assessment in recentAssessments.slice(0, 50)" :key="assessment.id" class="table-row">
               <div class="table-cell">{{ formatDate(assessment.createdAt) }}</div>
-              <div class="table-cell">
-                <span class="link-badge" :class="getLinkBadgeClass(assessment.linkName)">
-                  {{ assessment.linkName }}
-                </span>
-              </div>
               <div class="table-cell">
                 <span class="score-badge">{{ assessment.totalScore }}/200</span>
               </div>
@@ -408,11 +400,6 @@
               <div class="table-cell">{{ assessment.dimensionScores.connect }}/50</div>
               <div class="table-cell">{{ assessment.dimensionScores.enable }}/50</div>
               <div class="table-cell">{{ assessment.dimensionScores.develop }}/50</div>
-              <div class="table-cell">
-                <span class="status-badge" :class="getLevelClass(assessment.totalScore)">
-                  {{ getScoreLevel(assessment.totalScore) }}
-                </span>
-              </div>
             </div>
           </div>
         </div>
@@ -422,7 +409,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { request } from '../api'
 import QRCode from 'qrcode'
 
@@ -441,25 +428,6 @@ const newLink = ref({
   description: ''
 })
 
-// 计算属性 - 筛选后的评估记录
-const filteredAssessments = computed(() => {
-  let filtered = recentAssessments.value
-  
-  if (selectedLinkFilter.value) {
-    if (selectedLinkFilter.value === 'direct') {
-      filtered = recentAssessments.value.filter(assessment =>
-        assessment.linkName === '直接访问'
-      )
-    } else {
-      filtered = recentAssessments.value.filter(assessment =>
-        assessment.linkId === selectedLinkFilter.value
-      )
-    }
-  }
-  
-  // 限制显示最近50条记录
-  return filtered.slice(0, 50)
-})
 
 // 计算属性 - 链接统计数据
 const calculateLinkStats = () => {
@@ -534,13 +502,85 @@ const scoreDistribution = ref([
 
 const recentAssessments = ref<any[]>([])
 const assessmentLinks = ref<any[]>([])
-const selectedLinkFilter = ref('')
 const linkStats = ref<any[]>([])
+const selectedAnalysisFilter = ref('')
 
 // 计算属性
 const completionRate = computed(() => {
   if (stats.value.totalParticipants === 0) return 0
   return Math.round((stats.value.completedAssessments / stats.value.totalParticipants) * 100)
+})
+
+// 根据筛选条件过滤的评估数据
+const filteredAnalysisData = computed(() => {
+  let filtered = recentAssessments.value
+  
+  if (selectedAnalysisFilter.value) {
+    if (selectedAnalysisFilter.value === 'direct') {
+      filtered = recentAssessments.value.filter(assessment =>
+        assessment.linkName === '直接访问'
+      )
+    } else {
+      filtered = recentAssessments.value.filter(assessment =>
+        assessment.linkId === selectedAnalysisFilter.value
+      )
+    }
+  }
+  
+  return filtered
+})
+
+// 基于筛选数据的维度统计
+const filteredDimensionStats = computed(() => {
+  const completedResults = filteredAnalysisData.value.filter(r => r.totalScore > 0)
+  
+  const stats = [
+    { name: 'Trust（信任建设）', average: 0, class: 'trust' },
+    { name: 'Connect（深度连接）', average: 0, class: 'connect' },
+    { name: 'Enable（精准赋能）', average: 0, class: 'enable' },
+    { name: 'Develop（持续发展）', average: 0, class: 'develop' }
+  ]
+
+  if (completedResults.length > 0) {
+    stats[0].average = Math.round(
+      completedResults.reduce((sum, r) => sum + r.dimensionScores.trust, 0) / completedResults.length
+    )
+    stats[1].average = Math.round(
+      completedResults.reduce((sum, r) => sum + r.dimensionScores.connect, 0) / completedResults.length
+    )
+    stats[2].average = Math.round(
+      completedResults.reduce((sum, r) => sum + r.dimensionScores.enable, 0) / completedResults.length
+    )
+    stats[3].average = Math.round(
+      completedResults.reduce((sum, r) => sum + r.dimensionScores.develop, 0) / completedResults.length
+    )
+  }
+
+  return stats
+})
+
+// 基于筛选数据的分数分布
+const filteredScoreDistribution = computed(() => {
+  const completedResults = filteredAnalysisData.value.filter(r => r.totalScore > 0)
+  
+  const distribution = [
+    { label: '优秀 (160-200分)', count: 0 },
+    { label: '良好 (120-159分)', count: 0 },
+    { label: '中等 (80-119分)', count: 0 },
+    { label: '待提升 (40-79分)', count: 0 },
+    { label: '需改进 (0-39分)', count: 0 }
+  ]
+
+  completedResults.forEach(result => {
+    const score = result.totalScore
+    if (score >= 160) distribution[0].count++
+    else if (score >= 120) distribution[1].count++
+    else if (score >= 80) distribution[2].count++
+    else if (score >= 40) distribution[3].count++
+    else distribution[4].count++
+  })
+
+  return distribution
 })
 
 // 方法
@@ -672,14 +712,16 @@ const loadAssessmentLinks = async () => {
 const refreshStats = async () => {
   await loadStats()
   await loadAssessmentLinks()
+  
+  // 更新当前二维码的访问次数
+  if (currentQRCode.value) {
+    const updatedLink = assessmentLinks.value.find(link => link.id === currentQRCode.value?.id)
+    if (updatedLink) {
+      currentQRCode.value.visits = updatedLink.visits
+    }
+  }
 }
 
-const getLinkBadgeClass = (linkName: string) => {
-  if (linkName === '直接访问') {
-    return 'direct'
-  }
-  return 'linked'
-}
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString)
@@ -702,10 +744,34 @@ const getLevelClass = (score: number) => {
   return 'poor'
 }
 
+// 定时刷新间隔
+let refreshInterval: NodeJS.Timeout | null = null
+
+// 启动定时刷新
+const startAutoRefresh = () => {
+  // 每30秒刷新一次数据
+  refreshInterval = setInterval(() => {
+    refreshStats()
+  }, 30000)
+}
+
+// 停止定时刷新
+const stopAutoRefresh = () => {
+  if (refreshInterval) {
+    clearInterval(refreshInterval)
+    refreshInterval = null
+  }
+}
+
 // 生命周期
 onMounted(() => {
   loadStats()
   loadAssessmentLinks()
+  startAutoRefresh()
+})
+
+onUnmounted(() => {
+  stopAutoRefresh()
 })
 </script>
 
@@ -1493,5 +1559,144 @@ onMounted(() => {
   .section-title {
     font-size: 2rem;
   }
+}
+/* 实时更新指示器样式 */
+.real-time-indicator {
+  color: var(--success);
+  font-size: 0.75rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* 链接统计表格样式优化 */
+.link-stats-chart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.link-stat-item {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  border: 1px solid var(--border-light);
+  transition: all var(--duration-normal) ease;
+}
+
+.link-stat-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.link-stat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-3);
+}
+
+.link-stat-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+
+.link-stat-count {
+  background: var(--primary-100);
+  color: var(--primary-700);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.link-stat-details {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.stat-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.detail-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.detail-value {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.link-progress-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.link-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-500), var(--primary-400));
+  border-radius: var(--radius-sm);
+  transition: width var(--duration-normal) ease;
+}
+
+/* 分析筛选器样式 */
+.analysis-filter {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-right: var(--space-4);
+}
+
+.analysis-filter label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.analysis-filter .form-select {
+  min-width: 200px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  transition: all var(--duration-normal) ease;
+}
+
+.analysis-filter .form-select:focus {
+  outline: none;
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.section-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
 }
 </style>

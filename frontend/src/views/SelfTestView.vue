@@ -746,12 +746,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
 import { request } from '../api';
 import { useUserStore } from '../store';
 
-// 用户store
+// 用户store和路由
 const userStore = useUserStore();
+const route = useRoute();
 
 // 问题数据
 const trustQuestions = {
@@ -1044,6 +1046,7 @@ const submitAssessment = async () => {
   const progressInterval = startAnalysisProgress();
   
   try {
+    const linkId = route.query.linkId as string;
     const assessmentData = {
       scores: scores.value,
       totalScore: totalScore.value,
@@ -1052,7 +1055,8 @@ const submitAssessment = async () => {
         connect: connectScore.value,
         enable: enableScore.value,
         develop: developScore.value
-      }
+      },
+      linkId: linkId || null
     };
     
     const response = await request.post<{data: any}>('/self-test/analyze', assessmentData);
@@ -1115,6 +1119,7 @@ const submitPersonalizedAnalysis = async () => {
   isPersonalizing.value = true;
   
   try {
+    const linkId = route.query.linkId as string;
     const assessmentData = {
       scores: scores.value,
       totalScore: totalScore.value,
@@ -1123,7 +1128,8 @@ const submitPersonalizedAnalysis = async () => {
         connect: connectScore.value,
         enable: enableScore.value,
         develop: developScore.value
-      }
+      },
+      linkId: linkId || null
     };
     
     const response = await request.post<{data: any}>('/self-test/analyze-personalized', {
@@ -1231,6 +1237,25 @@ const randomFillScores = () => {
   
   console.log('随机填充完成，低分项:', lowScoreItems.map(item => `${item.dimension}.${item.subDimension}`));
 };
+
+// 记录链接访问
+const recordLinkVisit = async () => {
+  const linkId = route.query.linkId as string;
+  if (linkId) {
+    try {
+      await request.post('/admin/link-visit', { linkId });
+      console.log('访问记录成功:', linkId);
+    } catch (error) {
+      console.error('记录访问失败:', error);
+      // 不影响用户体验，静默失败
+    }
+  }
+};
+
+// 组件挂载时记录访问
+onMounted(() => {
+  recordLinkVisit();
+});
 </script>
 
 <style scoped>
