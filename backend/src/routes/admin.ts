@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express'
 import { v4 as uuidv4 } from 'uuid'
 import { asyncHandler, AppError } from '@/middlewares/errorHandler'
 import { authMiddleware } from '@/middlewares/auth'
-import { dataManager } from '../utils/dataManager'
+import { safeDataManager } from '../utils/safeDataManager'
 
 const router = Router()
 
@@ -50,8 +50,8 @@ router.post('/assessment-links', authMiddleware, adminMiddleware, asyncHandler(a
     isActive: true
   }
 
-  // 使用数据管理器添加新链接
-  dataManager.addAssessmentLink(newLink)
+  // 使用安全数据管理器添加新链接
+  await safeDataManager.addAssessmentLink(newLink)
 
   res.status(200).json({
     code: 200,
@@ -62,9 +62,9 @@ router.post('/assessment-links', authMiddleware, adminMiddleware, asyncHandler(a
 
 // 获取统计数据
 router.get('/stats', authMiddleware, adminMiddleware, asyncHandler(async (_req: Request, res: Response) => {
-  // 使用数据管理器获取最新数据
-  const latestAssessmentLinks = dataManager.getAssessmentLinks()
-  const latestAssessmentResults = dataManager.getAssessmentResults()
+  // 使用安全数据管理器获取最新数据
+  const latestAssessmentLinks = await safeDataManager.getAssessmentLinks()
+  const latestAssessmentResults = await safeDataManager.getAssessmentResults()
   
   console.log('获取最新数据用于统计:', {
     linksCount: latestAssessmentLinks.length,
@@ -179,9 +179,9 @@ router.get('/stats', authMiddleware, adminMiddleware, asyncHandler(async (_req: 
 
 // 获取所有评估链接
 router.get('/assessment-links', authMiddleware, adminMiddleware, asyncHandler(async (_req: Request, res: Response) => {
-  // 使用数据管理器获取最新数据
-  const latestAssessmentLinks = dataManager.getAssessmentLinks()
-  const latestAssessmentResults = dataManager.getAssessmentResults()
+  // 使用安全数据管理器获取最新数据
+  const latestAssessmentLinks = await safeDataManager.getAssessmentLinks()
+  const latestAssessmentResults = await safeDataManager.getAssessmentResults()
   
   console.log('获取最新链接数据:', {
     linksCount: latestAssessmentLinks.length,
@@ -204,15 +204,15 @@ router.get('/assessment-links', authMiddleware, adminMiddleware, asyncHandler(as
 router.put('/assessment-links/:id/deactivate', authMiddleware, adminMiddleware, asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params
   
-  // 使用数据管理器更新链接状态
-  const success = dataManager.updateAssessmentLink(id, { isActive: false })
+  // 使用安全数据管理器更新链接状态
+  const success = await safeDataManager.updateAssessmentLink(id, { isActive: false })
   
   if (!success) {
     throw new AppError('评估链接不存在', 404)
   }
   
   // 获取更新后的链接数据
-  const links = dataManager.getAssessmentLinks()
+  const links = await safeDataManager.getAssessmentLinks()
   const updatedLink = links.find((l: any) => l.id === id)
 
   res.status(200).json({
@@ -227,8 +227,8 @@ router.delete('/assessment-links/:id', authMiddleware, adminMiddleware, asyncHan
   const { id } = req.params
   
   try {
-    // 使用数据管理器删除链接
-    const result = dataManager.deleteAssessmentLink(id)
+    // 使用安全数据管理器删除链接
+    const result = await safeDataManager.deleteAssessmentLink(id)
     
     console.log(`删除链接成功: ${result.deletedLink.name}, 删除了 ${result.deletedResultsCount} 条相关评估结果`)
     
@@ -271,7 +271,7 @@ router.post('/assessment-results', asyncHandler(async (req: Request, res: Respon
 
   // 记录完成统计（访问统计在link-visit接口中处理）
   if (linkId) {
-    dataManager.recordAssessmentCompletion(linkId)
+    await safeDataManager.recordAssessmentCompletion(linkId)
   } else {
     console.log('无linkId，记录为直接访问')
   }
@@ -288,8 +288,8 @@ router.post('/assessment-results', asyncHandler(async (req: Request, res: Respon
     // 不存储任何个人信息，保持匿名
   }
 
-  // 使用数据管理器添加评估结果
-  dataManager.addAssessmentResult(result)
+  // 使用安全数据管理器添加评估结果
+  await safeDataManager.addAssessmentResult(result)
   
   console.log('评估结果已保存:', {
     id: result.id,
@@ -311,9 +311,9 @@ router.post('/assessment-results', asyncHandler(async (req: Request, res: Respon
 
 // 导出评估数据 (CSV格式)
 router.get('/export/assessments', authMiddleware, adminMiddleware, asyncHandler(async (_req: Request, res: Response) => {
-  // 使用数据管理器获取最新数据
-  const latestAssessmentResults = dataManager.getAssessmentResults()
-  const latestAssessmentLinks = dataManager.getAssessmentLinks()
+  // 使用安全数据管理器获取最新数据
+  const latestAssessmentResults = await safeDataManager.getAssessmentResults()
+  const latestAssessmentLinks = await safeDataManager.getAssessmentLinks()
   
   const completedResults = latestAssessmentResults.filter((r: any) => r.isCompleted)
   
@@ -356,9 +356,9 @@ router.post('/link-visit', asyncHandler(async (req: Request, res: Response) => {
     })
   }
 
-  // 使用数据管理器记录访问
-  const success = dataManager.recordLinkVisit(linkId)
-  const links = dataManager.getAssessmentLinks()
+  // 使用安全数据管理器记录访问
+  const success = await safeDataManager.recordLinkVisit(linkId)
+  const links = await safeDataManager.getAssessmentLinks()
   const link = links.find((l: any) => l.id === linkId)
 
   return res.status(200).json({
