@@ -20,10 +20,10 @@ module.exports = {
         PORT: 3000,
         FRONTEND_URL: 'http://101.132.237.40:5173,http://localhost:5173,http://127.0.0.1:5173',
         JWT_SECRET: 'your-super-secret-jwt-key-change-this-in-production',
-        // 双KIMI API Key配置
-        KIMI_API_URL: 'https://api.moonshot.cn/v1/chat/completions',
-        KIMI_API_KEY_1: 'sk-kb3yM6i50AHduhfQjScwAAwGxKRBn3g1OvVbdjtA2LNAgBRx',
-        KIMI_API_KEY_2: 'sk-99aGzOsTsc0HGQeQhTmEk3rcy4yEOSVGLPEo2yJHCRhrBVSI'
+        // 双KIMI API Key配置 - 从环境变量或.env文件读取
+        KIMI_API_URL: 'https://api.moonshot.cn/v1/chat/completions'
+        // KIMI_API_KEY_1 和 KIMI_API_KEY_2 应该在服务器的 .env 文件中配置
+        // 或者通过系统环境变量设置，不应该在此配置文件中明文存储
       },
       log_file: './logs/backend-combined.log',
       out_file: './logs/backend-out.log',
