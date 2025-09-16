@@ -316,14 +316,14 @@ router.post('/generate-report', async (req: Request, res: Response): Promise<voi
 // AI辅助：单个维度建议
 router.post('/ai-assist/dimension', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { session_id, dimension } = req.body;
+    const { dimension, customer_name, my_product, competitor_product } = req.body;
 
-    console.log('AI维度建议请求:', { session_id, dimension });
+    console.log('AI维度建议请求:', { dimension, customer_name, my_product, competitor_product });
 
-    if (!session_id || !dimension) {
+    if (!dimension) {
       res.status(400).json({
         code: 400,
-        message: '请提供会话ID和维度信息',
+        message: '请提供维度信息',
         data: null
       });
       return;
@@ -340,7 +340,17 @@ router.post('/ai-assist/dimension', async (req: Request, res: Response): Promise
       return;
     }
 
-    const suggestion = await competitiveAnalysisService.getDimensionSuggestion(session_id, dimension);
+    // 使用默认值确保有基本信息
+    const customerName = customer_name || '目标客户';
+    const myProduct = my_product || '我方产品';
+    const competitorProduct = competitor_product || '竞争对手产品';
+
+    const suggestion = await competitiveAnalysisService.getDimensionSuggestionDirect(
+      dimension,
+      myProduct,
+      competitorProduct,
+      customerName
+    );
 
     res.json({
       code: 200,

@@ -451,29 +451,16 @@ class CompetitiveAnalysisService {
     };
   }
 
-  // AI辅助：单个维度建议
-  async getDimensionSuggestion(sessionId: string, dimension: string): Promise<any> {
-    console.log(`获取维度建议 - 会话ID: ${sessionId}, 维度: ${dimension}`);
-    
-    const session = sessions.get(sessionId);
-    if (!session) {
-      console.error(`会话不存在: ${sessionId}`);
-      console.log('当前存在的会话:', Array.from(sessions.keys()));
-      throw new Error(`会话不存在: ${sessionId}`);
-    }
-
-    console.log(`会话信息:`, {
-      customer_name: session.customer_name,
-      my_product: session.my_product,
-      competitor_product: session.competitor_product
-    });
+  // AI辅助：单个维度建议（直接传参，不依赖会话）
+  async getDimensionSuggestionDirect(dimension: string, myProduct: string, competitorProduct: string, customerName: string): Promise<any> {
+    console.log(`获取维度建议 - 维度: ${dimension}, 我方产品: ${myProduct}, 竞争对手: ${competitorProduct}, 客户: ${customerName}`);
 
     try {
       const prompt = buildDimensionSuggestionPrompt(
         dimension,
-        session.my_product,
-        session.competitor_product,
-        session.customer_name
+        myProduct,
+        competitorProduct,
+        customerName
       );
 
       console.log(`构建的提示词长度: ${prompt.length}`);
@@ -489,6 +476,44 @@ class CompetitiveAnalysisService {
       console.log('返回降级响应');
       return this.generateFallbackResponse(`维度建议 ${dimension}`);
     }
+  }
+
+  // AI辅助：单个维度建议（保留原有方法用于向后兼容）
+  async getDimensionSuggestion(sessionId: string, dimension: string): Promise<any> {
+    console.log(`获取维度建议 - 会话ID: ${sessionId}, 维度: ${dimension}`);
+    
+    let session = sessions.get(sessionId);
+    if (!session) {
+      console.warn(`会话不存在: ${sessionId}，尝试从sessionId解析基础信息`);
+      console.log('当前存在的会话:', Array.from(sessions.keys()));
+      
+      // 如果会话不存在，尝试创建一个临时会话用于AI建议
+      // 这种情况通常发生在服务重启后
+      console.log('创建临时会话用于AI建议');
+      session = {
+        id: sessionId,
+        customer_name: '客户',
+        my_product: '我方产品',
+        competitor_product: '竞争对手产品',
+        created_at: new Date(),
+        steps: {}
+      };
+      sessions.set(sessionId, session);
+    }
+
+    console.log(`会话信息:`, {
+      customer_name: session.customer_name,
+      my_product: session.my_product,
+      competitor_product: session.competitor_product
+    });
+
+    // 调用新的直接方法
+    return this.getDimensionSuggestionDirect(
+      dimension,
+      session.my_product,
+      session.competitor_product,
+      session.customer_name
+    );
   }
 
   // AI辅助：独有利益建议

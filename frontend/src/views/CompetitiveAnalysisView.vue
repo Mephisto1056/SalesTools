@@ -1014,22 +1014,20 @@ const getAISuggestion = async (dimension: string) => {
     if (!formData.customerName || !formData.myProduct || !formData.competitorProduct) {
       throw new Error('请先在步骤1中完整填写基础信息')
     }
-    
-    // 确保有会话ID
-    if (!formData.sessionId) {
-      console.log('会话ID不存在，开始初始化会话...')
-      await initSession()
-      if (!formData.sessionId) {
-        throw new Error('会话初始化失败，请检查基础信息是否完整')
-      }
-    }
 
-    console.log('调用AI建议API:', { dimension, sessionId: formData.sessionId })
+    console.log('调用AI建议API:', {
+      dimension,
+      customer_name: formData.customerName,
+      my_product: formData.myProduct,
+      competitor_product: formData.competitorProduct
+    })
     
-    // 调用后端AI建议API
+    // 调用后端AI建议API，直接传递基础信息
     const response = await request.post<ApiResponse<DimensionSuggestion>>('/competitive-analysis/ai-assist/dimension', {
-      session_id: formData.sessionId,
-      dimension: dimension
+      dimension: dimension,
+      customer_name: formData.customerName,
+      my_product: formData.myProduct,
+      competitor_product: formData.competitorProduct
     })
     
     if (response.code === 200 && response.data) {
@@ -1050,11 +1048,6 @@ const getAISuggestion = async (dimension: string) => {
   } catch (err: any) {
     console.error('AI建议获取错误:', err)
     error.value = err.message || 'AI建议获取失败，请稍后重试'
-    
-    // 如果是会话相关错误，清除会话ID以便重新初始化
-    if (err.message && err.message.includes('会话')) {
-      formData.sessionId = ''
-    }
   } finally {
     aiLoading[dimension] = false
   }

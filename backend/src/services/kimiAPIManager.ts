@@ -188,6 +188,24 @@ export class KimiAPIManager {
     }
   }
 
+  // 联网搜索API调用方法
+  public async callKimiAPIWithSearch(prompt: string, options: any = {}): Promise<any> {
+    // 为联网搜索优化的prompt
+    const searchPrompt = `请先搜索相关的最新信息，然后基于搜索结果回答以下问题：
+
+${prompt}
+
+请确保使用最新的数据和信息来回答。`;
+
+    return this.callKimiAPI(searchPrompt, {
+      model: 'moonshot-v1-128k', // 确保使用支持联网搜索的模型
+      temperature: options.temperature || 0.3,
+      max_tokens: options.max_tokens || 4000,
+      timeout: options.timeout || 120000, // 联网搜索需要更长时间
+      ...options
+    });
+  }
+
   // 主要的API调用方法
   public async callKimiAPI(prompt: string, options: any = {}): Promise<any> {
     const estimatedTokens = this.estimateTokens(prompt);
@@ -204,7 +222,7 @@ export class KimiAPIManager {
 
     // 构建请求体
     const requestBody = {
-      model: options.model || 'moonshot-v1-128k',
+      model: options.model || 'moonshot-v1-128k', // 默认使用支持联网搜索的模型
       messages: [
         {
           role: 'user',
@@ -214,12 +232,6 @@ export class KimiAPIManager {
       temperature: options.temperature || 0.3,
       max_tokens: options.max_tokens || 4000,
       stream: false,
-      // KIMI API的联网搜索配置
-      tools: [
-        {
-          type: "web_search"
-        }
-      ],
       ...options
     };
 
@@ -254,7 +266,8 @@ export class KimiAPIManager {
         key: selectedKey.key.substring(0, 10) + '...',
         error: error.message,
         status: error.response?.status,
-        data: error.response?.data
+        data: error.response?.data,
+        requestBody: JSON.stringify(requestBody, null, 2)
       });
 
       // 检查是否是限制相关错误
@@ -325,7 +338,7 @@ export class KimiAPIManager {
 
     // 构建请求体
     const requestBody = {
-      model: options.model || 'moonshot-v1-128k',
+      model: options.model || 'moonshot-v1-128k', // 默认使用支持联网搜索的模型
       messages: [
         {
           role: 'user',
@@ -335,12 +348,6 @@ export class KimiAPIManager {
       temperature: options.temperature || 0.3,
       max_tokens: options.max_tokens || 4000,
       stream: false,
-      // KIMI API的联网搜索配置
-      tools: [
-        {
-          type: "web_search"
-        }
-      ],
       ...options
     };
 
