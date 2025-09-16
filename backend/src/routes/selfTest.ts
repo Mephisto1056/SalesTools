@@ -56,22 +56,43 @@ router.post('/analyze', async (req, res) => {
     try {
       const linkId = req.body.linkId || null; // 从请求中获取linkId
       
+      console.log('=== 后端接收评估数据 ===');
+      console.log('请求体中的linkId:', req.body.linkId);
+      console.log('linkId类型:', typeof req.body.linkId);
+      console.log('最终使用的linkId:', linkId);
+      console.log('完整请求体:', {
+        linkId: req.body.linkId,
+        totalScore: req.body.totalScore,
+        hasScores: !!req.body.scores,
+        hasDimensionScores: !!req.body.dimensionScores
+      });
+      
+      const saveData = {
+        linkId,
+        scores: assessment.scores,
+        totalScore: assessment.totalScore,
+        dimensionScores: assessment.dimensionScores,
+        analysis: analysisResult.analysis
+      };
+      
+      console.log('准备保存的数据:', saveData);
+      
       // 调用管理员API保存结果
-      await fetch(`http://localhost:3000/api/admin/assessment-results`, {
+      const saveResponse = await fetch(`http://localhost:3000/api/admin/assessment-results`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          linkId,
-          scores: assessment.scores,
-          totalScore: assessment.totalScore,
-          dimensionScores: assessment.dimensionScores,
-          analysis: analysisResult.analysis
-        })
+        body: JSON.stringify(saveData)
       });
       
-      console.log('评估结果已保存到统计系统');
+      if (!saveResponse.ok) {
+        const errorText = await saveResponse.text();
+        console.error('保存评估结果API响应错误:', saveResponse.status, errorText);
+      } else {
+        const saveResult = await saveResponse.json();
+        console.log('评估结果已保存到统计系统:', saveResult);
+      }
     } catch (error) {
       console.error('保存评估结果失败:', error);
       // 不影响用户体验，继续返回结果

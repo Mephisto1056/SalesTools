@@ -750,6 +750,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { request } from '../api';
 import { useUserStore } from '../store';
+import { eventBus } from '../utils/eventBus';
 
 // 用户store和路由
 const userStore = useUserStore();
@@ -1047,6 +1048,14 @@ const submitAssessment = async () => {
   
   try {
     const linkId = route.query.linkId as string;
+    
+    // 详细的调试日志
+    console.log('=== 提交评估数据 ===');
+    console.log('URL查询参数:', route.query);
+    console.log('提取的linkId:', linkId);
+    console.log('linkId类型:', typeof linkId);
+    console.log('linkId是否为空:', !linkId);
+    
     const assessmentData = {
       scores: scores.value,
       totalScore: totalScore.value,
@@ -1058,6 +1067,12 @@ const submitAssessment = async () => {
       },
       linkId: linkId || null
     };
+    
+    console.log('最终发送的评估数据:', {
+      linkId: assessmentData.linkId,
+      totalScore: assessmentData.totalScore,
+      dimensionScores: assessmentData.dimensionScores
+    });
     
     const response = await request.post<{data: any}>('/self-test/analyze', assessmentData);
     
@@ -1072,6 +1087,11 @@ const submitAssessment = async () => {
     analysisResult.value = response.data;
     aiAnalysis.value = response.data.analysis;
     showResult.value = true;
+    
+    console.log('评估提交成功，linkId:', linkId);
+    
+    // 触发数据刷新事件，通知dashboard更新
+    eventBus.emit('assessment-submitted', { linkId: linkId || null });
   } catch (error) {
     console.error('提交评估失败:', error);
     clearInterval(progressInterval);
@@ -1241,14 +1261,22 @@ const randomFillScores = () => {
 // 记录链接访问
 const recordLinkVisit = async () => {
   const linkId = route.query.linkId as string;
+  
+  console.log('=== 记录链接访问 ===');
+  console.log('URL查询参数:', route.query);
+  console.log('提取的linkId:', linkId);
+  console.log('linkId类型:', typeof linkId);
+  
   if (linkId) {
     try {
-      await request.post('/admin/link-visit', { linkId });
-      console.log('访问记录成功:', linkId);
+      const response = await request.post('/admin/link-visit', { linkId });
+      console.log('访问记录成功:', linkId, response);
     } catch (error) {
       console.error('记录访问失败:', error);
       // 不影响用户体验，静默失败
     }
+  } else {
+    console.log('没有linkId，跳过访问记录');
   }
 };
 

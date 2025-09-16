@@ -2,63 +2,11 @@ import { Router, Request, Response } from 'express'
 import { v4 as uuidv4 } from 'uuid'
 import { asyncHandler, AppError } from '@/middlewares/errorHandler'
 import { authMiddleware } from '@/middlewares/auth'
-import fs from 'fs'
-import path from 'path'
+import { dataManager } from '../utils/dataManager'
 
 const router = Router()
 
-// 数据文件路径
-const DATA_DIR = path.join(process.cwd(), 'data')
-const LINKS_FILE = path.join(DATA_DIR, 'assessment-links.json')
-const RESULTS_FILE = path.join(DATA_DIR, 'assessment-results.json')
-
-// 确保数据目录存在
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true })
-}
-
-// 确保数据文件存在
-if (!fs.existsSync(LINKS_FILE)) {
-  fs.writeFileSync(LINKS_FILE, '[]', 'utf8')
-}
-
-if (!fs.existsSync(RESULTS_FILE)) {
-  fs.writeFileSync(RESULTS_FILE, '[]', 'utf8')
-}
-
-// 从文件加载数据
-const loadData = (filePath: string, defaultValue: any[] = []) => {
-  try {
-    if (fs.existsSync(filePath)) {
-      const data = fs.readFileSync(filePath, 'utf8')
-      return JSON.parse(data)
-    }
-  } catch (error) {
-    console.error(`加载数据文件失败: ${filePath}`, error)
-  }
-  return defaultValue
-}
-
-// 保存数据到文件
-const saveData = (filePath: string, data: any[]) => {
-  try {
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8')
-    console.log(`数据已保存到: ${filePath}, 记录数: ${data.length}`)
-  } catch (error) {
-    console.error(`保存数据文件失败: ${filePath}`, error)
-    throw error
-  }
-}
-
-// 持久化数据存储
-let assessmentLinks: any[] = loadData(LINKS_FILE)
-let assessmentResults: any[] = loadData(RESULTS_FILE)
-
-console.log(`📊 数据加载完成:`)
-console.log(`  - 评估链接: ${assessmentLinks.length} 个`)
-console.log(`  - 评估结果: ${assessmentResults.length} 条`)
-console.log(`  - 链接文件: ${LINKS_FILE}`)
-console.log(`  - 结果文件: ${RESULTS_FILE}`)
+console.log('📊 使用数据管理器进行数据操作')
 
 // 管理员权限检查中间件
 const adminMiddleware = (req: any, _res: Response, next: any) => {
@@ -102,8 +50,8 @@ router.post('/assessment-links', authMiddleware, adminMiddleware, asyncHandler(a
     isActive: true
   }
 
-  assessmentLinks.push(newLink)
-  saveData(LINKS_FILE, assessmentLinks) // 保存到文件
+  // 使用数据管理器添加新链接
+  dataManager.addAssessmentLink(newLink)
 
   res.status(200).json({
     code: 200,
@@ -114,22 +62,31 @@ router.post('/assessment-links', authMiddleware, adminMiddleware, asyncHandler(a
 
 // 获取统计数据
 router.get('/stats', authMiddleware, adminMiddleware, asyncHandler(async (_req: Request, res: Response) => {
+  // 使用数据管理器获取最新数据
+  const latestAssessmentLinks = dataManager.getAssessmentLinks()
+  const latestAssessmentResults = dataManager.getAssessmentResults()
+  
+  console.log('获取最新数据用于统计:', {
+    linksCount: latestAssessmentLinks.length,
+    resultsCount: latestAssessmentResults.length
+  })
+  
   // 计算基础统计
-  const totalParticipants = assessmentResults.length
-  const completedAssessments = assessmentResults.filter(r => r.isCompleted).length
-  const activeLinks = assessmentLinks.filter(l => l.isActive).length
+  const totalParticipants = latestAssessmentResults.length
+  const completedAssessments = latestAssessmentResults.filter((r: any) => r.isCompleted).length
+  const activeLinks = latestAssessmentLinks.filter((l: any) => l.isActive).length
   
   // 计算本周新增参与者
   const oneWeekAgo = new Date()
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
-  const newParticipants = assessmentResults.filter(r => 
+  const newParticipants = latestAssessmentResults.filter((r: any) =>
     new Date(r.createdAt) > oneWeekAgo
   ).length
 
   // 计算平均分
-  const completedResults = assessmentResults.filter(r => r.isCompleted)
-  const averageScore = completedResults.length > 0 
-    ? Math.round(completedResults.reduce((sum, r) => sum + r.totalScore, 0) / completedResults.length)
+  const completedResults = latestAssessmentResults.filter((r: any) => r.isCompleted)
+  const averageScore = completedResults.length > 0
+    ? Math.round(completedResults.reduce((sum: number, r: any) => sum + r.totalScore, 0) / completedResults.length)
     : 0
 
   // 计算各维度平均分
@@ -142,16 +99,16 @@ router.get('/stats', authMiddleware, adminMiddleware, asyncHandler(async (_req: 
 
   if (completedResults.length > 0) {
     dimensionStats[0].average = Math.round(
-      completedResults.reduce((sum, r) => sum + r.dimensionScores.trust, 0) / completedResults.length
+      completedResults.reduce((sum: number, r: any) => sum + r.dimensionScores.trust, 0) / completedResults.length
     )
     dimensionStats[1].average = Math.round(
-      completedResults.reduce((sum, r) => sum + r.dimensionScores.connect, 0) / completedResults.length
+      completedResults.reduce((sum: number, r: any) => sum + r.dimensionScores.connect, 0) / completedResults.length
     )
     dimensionStats[2].average = Math.round(
-      completedResults.reduce((sum, r) => sum + r.dimensionScores.enable, 0) / completedResults.length
+      completedResults.reduce((sum: number, r: any) => sum + r.dimensionScores.enable, 0) / completedResults.length
     )
     dimensionStats[3].average = Math.round(
-      completedResults.reduce((sum, r) => sum + r.dimensionScores.develop, 0) / completedResults.length
+      completedResults.reduce((sum: number, r: any) => sum + r.dimensionScores.develop, 0) / completedResults.length
     )
   }
 
@@ -164,7 +121,7 @@ router.get('/stats', authMiddleware, adminMiddleware, asyncHandler(async (_req: 
     { label: '需改进 (0-39分)', count: 0 }
   ]
 
-  completedResults.forEach(result => {
+  completedResults.forEach((result: any) => {
     const score = result.totalScore
     if (score >= 160) scoreDistribution[0].count++
     else if (score >= 120) scoreDistribution[1].count++
@@ -175,9 +132,9 @@ router.get('/stats', authMiddleware, adminMiddleware, asyncHandler(async (_req: 
 
   // 获取所有评估记录（用于统计和筛选）
   const allAssessments = completedResults
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .map(result => {
-      const link = assessmentLinks.find(l => l.id === result.linkId)
+    .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .map((result: any) => {
+      const link = latestAssessmentLinks.find((l: any) => l.id === result.linkId)
       return {
         id: result.id,
         createdAt: result.createdAt,
@@ -187,6 +144,18 @@ router.get('/stats', authMiddleware, adminMiddleware, asyncHandler(async (_req: 
         linkName: link ? link.name : '直接访问'
       }
     })
+
+  // 获取所有评估链接信息（包括没有评估结果的链接）
+  const allLinks = latestAssessmentLinks.map((link: any) => ({
+    id: link.id,
+    name: link.name,
+    description: link.description,
+    url: link.url,
+    createdAt: link.createdAt,
+    visits: link.visits || 0,
+    completions: latestAssessmentResults.filter((r: any) => r.linkId === link.id && r.isCompleted).length,
+    isActive: link.isActive
+  }))
 
   res.status(200).json({
     code: 200,
@@ -198,20 +167,30 @@ router.get('/stats', authMiddleware, adminMiddleware, asyncHandler(async (_req: 
         completedAssessments,
         averageScore,
         activeLinks,
-        totalLinks: assessmentLinks.length
+        totalLinks: latestAssessmentLinks.length
       },
       dimensionStats,
       scoreDistribution,
-      recentAssessments: allAssessments
+      recentAssessments: allAssessments,
+      assessmentLinks: allLinks
     }
   })
 }))
 
 // 获取所有评估链接
 router.get('/assessment-links', authMiddleware, adminMiddleware, asyncHandler(async (_req: Request, res: Response) => {
-  const links = assessmentLinks.map(link => ({
+  // 使用数据管理器获取最新数据
+  const latestAssessmentLinks = dataManager.getAssessmentLinks()
+  const latestAssessmentResults = dataManager.getAssessmentResults()
+  
+  console.log('获取最新链接数据:', {
+    linksCount: latestAssessmentLinks.length,
+    resultsCount: latestAssessmentResults.length
+  })
+  
+  const links = latestAssessmentLinks.map((link: any) => ({
     ...link,
-    completions: assessmentResults.filter(r => r.linkId === link.id && r.isCompleted).length
+    completions: latestAssessmentResults.filter((r: any) => r.linkId === link.id && r.isCompleted).length
   }))
 
   res.status(200).json({
@@ -224,38 +203,77 @@ router.get('/assessment-links', authMiddleware, adminMiddleware, asyncHandler(as
 // 停用评估链接
 router.put('/assessment-links/:id/deactivate', authMiddleware, adminMiddleware, asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params
-  const link = assessmentLinks.find(l => l.id === id)
-
-  if (!link) {
+  
+  // 使用数据管理器更新链接状态
+  const success = dataManager.updateAssessmentLink(id, { isActive: false })
+  
+  if (!success) {
     throw new AppError('评估链接不存在', 404)
   }
-
-  link.isActive = false
-  saveData(LINKS_FILE, assessmentLinks) // 保存到文件
+  
+  // 获取更新后的链接数据
+  const links = dataManager.getAssessmentLinks()
+  const updatedLink = links.find((l: any) => l.id === id)
 
   res.status(200).json({
     code: 200,
     message: '评估链接已停用',
-    data: link
+    data: updatedLink
   })
+}))
+
+// 删除评估链接
+router.delete('/assessment-links/:id', authMiddleware, adminMiddleware, asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params
+  
+  try {
+    // 使用数据管理器删除链接
+    const result = dataManager.deleteAssessmentLink(id)
+    
+    console.log(`删除链接成功: ${result.deletedLink.name}, 删除了 ${result.deletedResultsCount} 条相关评估结果`)
+    
+    res.status(200).json({
+      code: 200,
+      message: '评估链接已删除',
+      data: {
+        deletedLink: result.deletedLink,
+        deletedResultsCount: result.deletedResultsCount
+      }
+    })
+  } catch (error: any) {
+    if (error.message === '评估链接不存在') {
+      throw new AppError('评估链接不存在', 404)
+    }
+    throw error
+  }
 }))
 
 // 记录评估结果 (供前端调用)
 router.post('/assessment-results', asyncHandler(async (req: Request, res: Response) => {
   const { linkId, scores, totalScore, dimensionScores, analysis } = req.body
 
+  console.log('=== 管理员API接收评估结果 ===')
+  console.log('接收到的linkId:', linkId)
+  console.log('linkId类型:', typeof linkId)
+  console.log('接收到的数据:', {
+    linkId,
+    totalScore,
+    hasScores: !!scores,
+    hasDimensionScores: !!dimensionScores,
+    hasAnalysis: !!analysis
+  })
+
   // 验证数据
   if (!totalScore || !dimensionScores) {
+    console.error('评估数据不完整:', { totalScore, dimensionScores })
     throw new AppError('评估数据不完整', 400)
   }
 
-  // 记录访问
+  // 记录完成统计（访问统计在link-visit接口中处理）
   if (linkId) {
-    const link = assessmentLinks.find(l => l.id === linkId)
-    if (link) {
-      link.visits = (link.visits || 0) + 1
-      saveData(LINKS_FILE, assessmentLinks) // 保存访问统计
-    }
+    dataManager.recordAssessmentCompletion(linkId)
+  } else {
+    console.log('无linkId，记录为直接访问')
   }
 
   const result = {
@@ -270,27 +288,39 @@ router.post('/assessment-results', asyncHandler(async (req: Request, res: Respon
     // 不存储任何个人信息，保持匿名
   }
 
-  assessmentResults.push(result)
-  saveData(RESULTS_FILE, assessmentResults) // 保存到文件
+  // 使用数据管理器添加评估结果
+  dataManager.addAssessmentResult(result)
+  
+  console.log('评估结果已保存:', {
+    id: result.id,
+    linkId: result.linkId,
+    totalScore: result.totalScore,
+    timestamp: result.createdAt
+  })
 
   res.status(200).json({
     code: 200,
     message: '评估结果已记录',
     data: {
       id: result.id,
-      timestamp: result.createdAt
+      timestamp: result.createdAt,
+      linkId: result.linkId
     }
   })
 }))
 
 // 导出评估数据 (CSV格式)
 router.get('/export/assessments', authMiddleware, adminMiddleware, asyncHandler(async (_req: Request, res: Response) => {
-  const completedResults = assessmentResults.filter(r => r.isCompleted)
+  // 使用数据管理器获取最新数据
+  const latestAssessmentResults = dataManager.getAssessmentResults()
+  const latestAssessmentLinks = dataManager.getAssessmentLinks()
+  
+  const completedResults = latestAssessmentResults.filter((r: any) => r.isCompleted)
   
   // 生成CSV内容
   const csvHeader = 'ID,评估时间,总分,Trust得分,Connect得分,Enable得分,Develop得分,来源链接\n'
-  const csvRows = completedResults.map(result => {
-    const link = assessmentLinks.find(l => l.id === result.linkId)
+  const csvRows = completedResults.map((result: any) => {
+    const link = latestAssessmentLinks.find((l: any) => l.id === result.linkId)
     return [
       result.id,
       result.createdAt,
@@ -314,28 +344,30 @@ router.get('/export/assessments', authMiddleware, adminMiddleware, asyncHandler(
 router.post('/link-visit', asyncHandler(async (req: Request, res: Response) => {
   const { linkId } = req.body
 
+  console.log('=== 记录链接访问 ===')
+  console.log('接收到的linkId:', linkId)
+  console.log('linkId类型:', typeof linkId)
+
   if (!linkId) {
+    console.log('无linkId，跳过访问记录')
     return res.status(200).json({
       code: 200,
       message: '无链接ID，跳过访问记录'
     })
   }
 
-  // 查找并更新链接访问次数
-  const link = assessmentLinks.find(l => l.id === linkId)
-  if (link) {
-    link.visits = (link.visits || 0) + 1
-    saveData(LINKS_FILE, assessmentLinks) // 保存访问统计
-    
-    console.log(`链接 ${link.name} 访问次数更新为: ${link.visits}`)
-  }
+  // 使用数据管理器记录访问
+  const success = dataManager.recordLinkVisit(linkId)
+  const links = dataManager.getAssessmentLinks()
+  const link = links.find((l: any) => l.id === linkId)
 
   return res.status(200).json({
     code: 200,
-    message: '访问记录成功',
+    message: success ? '访问记录成功' : '访问记录失败',
     data: {
       linkId,
-      visits: link ? link.visits : 0
+      visits: link ? link.visits : 0,
+      linkName: link ? link.name : '未知链接'
     }
   })
 }))
