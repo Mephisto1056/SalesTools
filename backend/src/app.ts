@@ -44,6 +44,13 @@ app.use(cors({
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
+
+    // 自适应：允许任意 IP 地址的访问 (针对生产环境 IP 变动)
+    // 匹配 http://x.x.x.x:port 或 https://x.x.x.x:port
+    const ipPattern = /^https?:\/\/(?:\d{1,3}\.){3}\d{1,3}(?::\d+)?$/;
+    if (ipPattern.test(origin)) {
+      return callback(null, true);
+    }
     
     // 在开发环境中，允许所有 localhost 和 127.0.0.1 的请求
     if (process.env.NODE_ENV === 'development') {

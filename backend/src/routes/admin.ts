@@ -26,17 +26,22 @@ router.post('/assessment-links', authMiddleware, adminMiddleware, asyncHandler(a
 
   const linkId = uuidv4()
   
-  // 处理多个前端URL，优先使用服务器地址
-  const frontendUrls = process.env.FRONTEND_URL || 'http://localhost:5173'
-  const urlList = frontendUrls.split(',').map(url => url.trim())
+  // 自适应获取基础 URL
+  let baseUrl = '';
+  const origin = req.headers.origin; // 从请求头获取来源
   
-  // 优先选择服务器地址（包含IP地址的URL）
-  const serverUrl = urlList.find(url =>
-    url.includes('101.132.237.40') ||
-    url.match(/\d+\.\d+\.\d+\.\d+/) // 匹配任何IP地址格式
-  )
+  // 如果有 Origin 请求头，优先使用 Origin
+  if (origin) {
+    baseUrl = origin;
+  } else {
+    // 如果没有 Origin，回退到环境变量配置
+    const frontendUrls = process.env.FRONTEND_URL || 'http://localhost:5173'
+    const urlList = frontendUrls.split(',').map(url => url.trim())
+    // 优先选择服务器地址（包含IP地址的URL）
+    const serverUrl = urlList.find(url => url.match(/\d+\.\d+\.\d+\.\d+/))
+    baseUrl = serverUrl || urlList[0]
+  }
   
-  const baseUrl = serverUrl || urlList[0] // 如果没有找到服务器地址，使用第一个URL
   const assessmentUrl = `${baseUrl}/self-test?linkId=${linkId}`
 
   const newLink = {

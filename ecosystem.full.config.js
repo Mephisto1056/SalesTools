@@ -19,7 +19,7 @@ module.exports = {
       env_production: {
         NODE_ENV: 'production',
         PORT: 3000,
-        FRONTEND_URL: 'http://101.132.237.40:5173,http://localhost:5173,http://127.0.0.1:5173',
+        FRONTEND_URL: 'http://47.116.200.141:5173,http://localhost:5173,http://127.0.0.1:5173',
         JWT_SECRET: 'your-super-secret-jwt-key-change-this-in-production',
         // 双KIMI API Key配置 - 从环境变量或.env文件读取
         KIMI_API_URL: 'https://api.moonshot.cn/v1/chat/completions'
