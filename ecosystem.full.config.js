@@ -10,16 +10,16 @@ module.exports = {
       env_file: './backend/.env',
       env: {
         NODE_ENV: 'development',
-        PORT: 3000,
-        FRONTEND_URL: 'http://localhost:5173',
+        PORT: 9000,
+        FRONTEND_URL: 'http://localhost:9001',
         JWT_SECRET: 'your-dev-jwt-secret',
         // 双KIMI API Key配置
         KIMI_API_URL: 'https://api.moonshot.cn/v1/chat/completions'
       },
       env_production: {
         NODE_ENV: 'production',
-        PORT: 3000,
-        FRONTEND_URL: 'http://47.116.200.141:5173,http://localhost:5173,http://127.0.0.1:5173',
+        PORT: 9000,
+        FRONTEND_URL: 'http://47.116.200.141:9001,http://localhost:9001,http://127.0.0.1:9001',
         JWT_SECRET: 'your-super-secret-jwt-key-change-this-in-production',
         // 双KIMI API Key配置 - 从环境变量或.env文件读取
         KIMI_API_URL: 'https://api.moonshot.cn/v1/chat/completions'
@@ -48,7 +48,7 @@ module.exports = {
       exec_mode: 'fork',
       env: {
         NODE_ENV: 'development',
-        VITE_API_BASE_URL: 'http://localhost:3000/api'
+        VITE_API_BASE_URL: 'http://localhost:9000/api'
       },
       log_file: './logs/frontend-dev-combined.log',
       out_file: './logs/frontend-dev-out.log',
@@ -68,7 +68,7 @@ module.exports = {
     {
       name: 'sales-frontend-prod',
       script: 'npx',
-      args: 'serve -s dist -l 5173',
+      args: 'serve -s dist -l 9001',
       cwd: './frontend',
       instances: 2,
       exec_mode: 'cluster',

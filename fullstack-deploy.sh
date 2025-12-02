@@ -83,9 +83,9 @@ echo -e "${BLUE}📊 当前状态:${NC}"
 pm2 status
 
 echo -e "${BLUE}🌐 访问地址:${NC}"
-echo -e "  前端: ${YELLOW}http://localhost:5173${NC}"
-echo -e "  后端API: ${YELLOW}http://localhost:3000${NC}"
-echo -e "  健康检查: ${YELLOW}http://localhost:3000/health${NC}"
+echo -e "  前端: ${YELLOW}http://localhost:9001${NC}"
+echo -e "  后端API: ${YELLOW}http://localhost:9000${NC}"
+echo -e "  健康检查: ${YELLOW}http://localhost:9000/health${NC}"
 
 echo -e "${BLUE}📝 管理命令:${NC}"
 echo -e "  查看状态: ${YELLOW}pm2 status${NC}"
@@ -103,7 +103,7 @@ sleep 10
 # 检查后端
 echo -e "${BLUE}检查后端服务...${NC}"
 for i in {1..5}; do
-    if curl -s http://localhost:3000/health > /dev/null; then
+    if curl -s http://localhost:9000/health > /dev/null; then
         echo -e "${GREEN}✅ 后端服务正常${NC}"
         break
     else
@@ -119,7 +119,7 @@ done
 # 检查前端
 echo -e "${BLUE}检查前端服务...${NC}"
 for i in {1..5}; do
-    if curl -s -I http://localhost:5173 | grep -q "200 OK"; then
+    if curl -s -I http://localhost:9001 | grep -q "200 OK"; then
         echo -e "${GREEN}✅ 前端服务正常${NC}"
         break
     else
@@ -135,7 +135,7 @@ done
 
 # 显示双API Key状态
 echo -e "${BLUE}🔑 检查双API Key状态...${NC}"
-if curl -s http://localhost:3000/api/status/status | grep -q "healthy"; then
+if curl -s http://localhost:9000/api/status/status | grep -q "healthy"; then
     echo -e "${GREEN}✅ 双API Key功能正常${NC}"
 else
     echo -e "${YELLOW}⚠️ 双API Key状态检查失败，请手动验证${NC}"
